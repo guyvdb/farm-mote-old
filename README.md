@@ -1,5 +1,4 @@
-# Hello World Example
+# Farm Mote
 
-Starts a FreeRTOS task to print "Hello World"
+Greenhouse automation for hydroponic farm 
 
-See the README.md file in the upper level 'examples' directory for more information about examples.
