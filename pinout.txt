@@ -1,0 +1,24 @@
+
+
+
+
+
+3V3         GND
+EN          G23  
+SP          G22
+SN          TXD
+G34         RXD
+G35         G21
+G32         GND
+G33         G19
+G25         G18
+G26         G5
+G27         G17  
+G14         G16
+G12         G4
+GND         G0/T1 
+G13         G2
+SD2         G15
+SD3         SD1
+GND         SD0
+U5          CLK

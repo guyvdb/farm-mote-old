@@ -10,8 +10,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "cli.h"
-
+#include "console/console.h"
+#include "flash/flash.h"
 
 
 #define CHIP_NAME "ESP32"
@@ -21,6 +21,8 @@
  *                                        
  * -------------------------------------------------------------------------- */
 void system_initialize() {
+  system_initialize_flash();
+  system_initialize_console();
 }
 
 
@@ -28,7 +30,7 @@ void system_initialize() {
  *                                        
  * -------------------------------------------------------------------------- */
 void system_create_tasks() {
-  task_create_cli(tskIDLE_PRIORITY + 1); // create the cli interface 
+  system_create_task_console(tskIDLE_PRIORITY + 1);
 }
 
 
@@ -49,7 +51,7 @@ void app_main(void) {
   // the main loop of the application 
   for(;;) {
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    printf("task: main\n");
+    //printf("task: main\n");
   }
   
 }
