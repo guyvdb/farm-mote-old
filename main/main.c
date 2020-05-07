@@ -1,57 +1,24 @@
-/*
-
-  Farm Mote Project 
-
-*/
-
-
-#include <stdio.h>
-#include "sdkconfig.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
+#include "filesystem/filesystem.h"
+#include "storage/storage.h"
 #include "console/console.h"
-#include "flash/flash.h"
+#include "wifi/wifi.h"
 
 
-#define CHIP_NAME "ESP32"
-
-
-/* ----------------------------------------------------------------------------
- *                                        
- * -------------------------------------------------------------------------- */
-void system_initialize() {
-  system_initialize_flash();
-  system_initialize_console();
-}
-
-
-/* ----------------------------------------------------------------------------
- *                                        
- * -------------------------------------------------------------------------- */
-void system_create_tasks() {
-  system_create_task_console(tskIDLE_PRIORITY + 1);
-}
-
-
-/* ----------------------------------------------------------------------------
- * Application entry point                                         
- * -------------------------------------------------------------------------- */
 void app_main(void) {
-
-  // initialize all components of the system
-  system_initialize();
-
-  
-  // the main loop is responsible for creating all tasks
-  system_create_tasks();
+    initialize_storage();
+    initialize_filesystem();
+    initialize_console();
 
 
-  
-  // the main loop of the application 
-  for(;;) {
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-    //printf("task: main\n");
-  }
-  
+    initialize_wifi();
+
+    
+
+    
+    
+    // enter the event loop of console. This will not return
+    console_event_loop();
+
+
+    finalize_console();
 }
