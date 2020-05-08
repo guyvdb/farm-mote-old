@@ -14,8 +14,8 @@
 #include "lwip/sys.h"
 
 
-#include "storage/storage.h"
-
+//#include "storage/storage.h"
+#include "kv/kv.h"
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
@@ -39,7 +39,7 @@ static int s_retry_num = 0;
 
 static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
 
-  int maxretry = get_wifi_max_retry();
+  int maxretry = 5; //get_wifi_max_retry();
   
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
@@ -63,7 +63,7 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
 void initialize_wifi(void) {
   return ;
 
-  int maxretry = get_wifi_max_retry();
+  int maxretry = 5; //get_wifi_max_retry();
   char ssid[32];
   char password[64];
 

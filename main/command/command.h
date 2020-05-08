@@ -1,17 +1,26 @@
 #pragma once
 
 // Which interface can respond to this type of command 
-enum { HTTPCOMMAND = 01, CONSOLECOMMAND = 02 };
+enum { NOINTERFACE = 0x1, HTTPINTERFACE = 0x2, CONSOLEINTERFACE = 0x4 };
 
-typedef void (*cmdfunc)(char **argv, int argc);
+typedef void (cmdfunc)(char *argv[], int argc);
+typedef int cmd_interface;
 
-struct cmd  {
+struct cmd {
   char *name;
   void *next;
   void *prev;
   cmdfunc *func;
-  int interfaces;
-} cmd_t;
+  cmd_interface interface;
+};
+typedef struct cmd cmd_t;
+typedef cmd_t* cmd_p;
 
 
-cmd_t *add_cmd(char *name, cmdfunc *func, int interfaces);
+void initialize_commands(void);
+void finalize_commands(void);
+
+cmd_p add_cmd(char *name, cmdfunc *func, cmd_interface interface);
+cmd_p find_cmd(char *name);
+cmd_p find_cmd_for_interface(char *name, cmd_interface interface);
+

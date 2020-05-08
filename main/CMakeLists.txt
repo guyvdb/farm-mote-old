@@ -7,6 +7,8 @@ idf_component_register(SRCS
   "wifi/wifi.c"
   "state/state.c"
   "command/command.c"
+  "kv/kv.c"
+  "id/id.c"
   "main.c"
 
   

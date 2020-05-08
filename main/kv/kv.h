@@ -1,0 +1,23 @@
+#pragma once
+
+
+
+
+
+
+// Wifi Related Storage
+
+
+
+
+void initialize_kv(void);
+
+esp_err_t get_wifi_ssid(char *buf, size_t len);
+esp_err_t set_wifi_ssid(char *value);
+esp_err_t get_wifi_password(char *buf, size_t len);
+esp_err_t set_wifi_password(char *value);
+
+/* // These defines need to come from the store  */
+/* #define EXAMPLE_ESP_MAXIMUM_RETRY  CONFIG_ESP_MAXIMUM_RETRY */
+/* #define EXAMPLE_ESP_WIFI_SSID      "HUAWEI-B618-7A5F" */
+/* #define EXAMPLE_ESP_WIFI_PASS      "2H9RL35NY6R"  */
