@@ -1,5 +1,5 @@
 #include <stdio.h>
-
+#include "esp_system.h"
 #include "id.h"
 
 #include "../command/command.h"
@@ -8,7 +8,16 @@
 
 
 static void cmd_id(char *argv[], int argc) {
+  esp_err_t err;
+  uint8_t address;
+  
   printf("id command called\n");
+
+  err = esp_base_mac_addr_get(&address);
+
+  printf("address: %d\n", address);
+
+  /// esp_err_t esp_base_mac_addr_get(uint8_t *mac);
 }
 
 

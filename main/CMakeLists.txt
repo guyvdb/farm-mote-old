@@ -9,6 +9,7 @@ idf_component_register(SRCS
   "command/command.c"
   "kv/kv.c"
   "id/id.c"
+  "time/time.c"
   "main.c"
 
   

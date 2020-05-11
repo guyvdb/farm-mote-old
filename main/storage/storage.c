@@ -79,3 +79,39 @@ esp_err_t write_storage_string_key(char *key, char *value) {
     return err;
   }
 }
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+esp_err_t read_storage_uint16_key(char *key, uint16_t *value) {
+  esp_err_t err;
+  nvs_handle_t handle;
+
+  err = nvs_open("storage",NVS_READONLY, &handle);
+  if (err != ESP_OK) {
+    return err;
+  }
+
+  err = nvs_get_u16(handle, key, value);
+  nvs_close(handle);
+  return err;
+  
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+esp_err_t write_storage_uint16_key(char *key, uint16_t value) {
+  esp_err_t err;
+  nvs_handle_t handle;
+
+  err = nvs_open("storage",NVS_READWRITE, &handle);
+  if (err != ESP_OK) {
+    return err;
+  }
+
+  err = nvs_set_u16(handle, key, value);
+  nvs_close(handle);
+  return err;
+}
+

@@ -5,6 +5,7 @@
 #include "command/command.h"
 #include "kv/kv.h"
 #include "id/id.h"
+#include "time/time.h"
 
 void app_main(void) {
 
@@ -14,8 +15,8 @@ void app_main(void) {
   initialize_console();
   initialize_kv();
   initialize_id();
-  
-  //initialize_wifi();
+  initialize_time();
+  initialize_wifi();
     
     
   // enter the event loop of console.
