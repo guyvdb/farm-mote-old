@@ -16,6 +16,9 @@ static void freecmd(cmd_p cmd) {
 }
 
 
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 void initialize_commands(void) {
   root_command = (cmd_p)malloc(sizeof(cmd_t));
   root_command->name = (char*)malloc(5);
@@ -29,6 +32,9 @@ void initialize_commands(void) {
 }
 
 
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 void finalize_commands(void) {
   // delete all the commands 
 
@@ -50,12 +56,11 @@ void finalize_commands(void) {
       current = 0x0;
     }
   }
-
 }
 
-
-
-
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 cmd_p add_cmd(char *name, cmdfunc *func, cmd_interface interface) {
   // set up the new command
   cmd_p cmd = (cmd_p)malloc(sizeof(cmd_t));
@@ -76,8 +81,9 @@ cmd_p add_cmd(char *name, cmdfunc *func, cmd_interface interface) {
   return cmd;
 }
 
-
-
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 cmd_p find_cmd(char *name) {
   cmd_p ptr = root_command;
 
@@ -92,4 +98,11 @@ cmd_p find_cmd(char *name) {
       return 0x0;
     } 
   }
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+printfunc find_cmd_print_func(cmd_interface interface) {
+  return printf;
 }

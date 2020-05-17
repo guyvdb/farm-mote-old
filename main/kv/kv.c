@@ -11,7 +11,7 @@
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-static void cmd_wifi_ssid(char *argv[], int argc) {
+static void cmd_wifi_ssid(char *argv[], int argc, printfunc print) {
   char value[MAX_STRING_VALUE_LEN];
   esp_err_t err;
   
@@ -19,28 +19,28 @@ static void cmd_wifi_ssid(char *argv[], int argc) {
   case 1  :
     err = get_wifi_ssid(value,sizeof(value));
     if (err == ESP_OK) {
-      printf("wifi-ssid: %s\n",value);
+      print("wifi-ssid: %s\n",value);
     } else {
-      printf("[ERROR] %s\n", esp_err_to_name(err));
+      print("[ERROR] %s\n", esp_err_to_name(err));
     }
     break; 
   case 2  :
     err = set_wifi_ssid(argv[1]);
     if (err == ESP_OK) {
-      printf("wifi-ssid set\n");
+      print("wifi-ssid set\n");
     } else {
-      printf("[ERROR] %s\n", esp_err_to_name(err));
+      print("[ERROR] %s\n", esp_err_to_name(err));
     }    
     break; 
   default :
-    printf("[ERROR] too many arguments. wifi-ssid | wifi-ssid <value>\n");
+    print("[ERROR] too many arguments. wifi-ssid | wifi-ssid <value>\n");
   }
 }
 
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-static void cmd_wifi_password(char *argv[], int argc) {
+static void cmd_wifi_password(char *argv[], int argc, printfunc print) {
   char value[MAX_STRING_VALUE_LEN];
   esp_err_t err;
 
@@ -48,21 +48,21 @@ static void cmd_wifi_password(char *argv[], int argc) {
   case 1  :
     err = get_wifi_password(value,sizeof(value));
     if (err == ESP_OK) {
-      printf("wifi-password: %s\n",value);
+      print("wifi-password: %s\n",value);
     } else {
-      printf("[ERROR] %s\n", esp_err_to_name(err));
+      print("[ERROR] %s\n", esp_err_to_name(err));
     }
     break; 
   case 2  :
     err = set_wifi_password(argv[1]);
     if (err == ESP_OK) {
-      printf("wifi-password set\n");
+      print("wifi-password set\n");
     } else {
-      printf("[ERROR] %s\n", esp_err_to_name(err));
+      print("[ERROR] %s\n", esp_err_to_name(err));
     }    
     break; 
   default :
-    printf("[ERROR] too many arguments. wifi-password | wifi-password <value>\n");
+    print("[ERROR] too many arguments. wifi-password | wifi-password <value>\n");
   }
 }
 
@@ -71,7 +71,7 @@ static void cmd_wifi_password(char *argv[], int argc) {
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-static void cmd_gateway_address(char *argv[], int argc) {
+static void cmd_gateway_address(char *argv[], int argc, printfunc print) {
   char value[MAX_STRING_VALUE_LEN];
   esp_err_t err;
 
@@ -79,28 +79,28 @@ static void cmd_gateway_address(char *argv[], int argc) {
   case 1  :
     err = get_gateway_address(value,sizeof(value));
     if (err == ESP_OK) {
-      printf("gateway-adress: %s\n",value);
+      print("gateway-adress: %s\n",value);
     } else {
-      printf("[ERROR] %s\n", esp_err_to_name(err));
+      print("[ERROR] %s\n", esp_err_to_name(err));
     }
     break; 
   case 2  :
     err = set_gateway_address(argv[1]); 
     if (err == ESP_OK) {
-      printf("gateway-address set\n");
+      print("gateway-address set\n");
     } else {
-      printf("[ERROR] %s\n", esp_err_to_name(err));
+      print("[ERROR] %s\n", esp_err_to_name(err));
     }    
     break; 
   default :
-    printf("[ERROR] too many arguments. gateway-address | gateway-address <value>\n");
+    print("[ERROR] too many arguments. gateway-address | gateway-address <value>\n");
   }
 }
 
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-static void cmd_gateway_port(char *argv[], int argc) {
+static void cmd_gateway_port(char *argv[], int argc, printfunc print) {
   uint16_t value;
   esp_err_t err;
 
@@ -108,22 +108,22 @@ static void cmd_gateway_port(char *argv[], int argc) {
   case 1  :
     err = get_gateway_port(&value);
     if (err == ESP_OK) {
-      printf("gatway-port: %d\n",value);
+      print("gatway-port: %d\n",value);
     } else {
-      printf("[ERROR] %s\n", esp_err_to_name(err));
+      print("[ERROR] %s\n", esp_err_to_name(err));
     }
     break; 
   case 2  :
     value = atoi(argv[1]);
     err = set_gateway_port(value);
     if (err == ESP_OK) {
-      printf("gateway-port set\n");
+      print("gateway-port set\n");
     } else {
-      printf("[ERROR] %s\n", esp_err_to_name(err));
+      print("[ERROR] %s\n", esp_err_to_name(err));
     }    
     break; 
   default :
-    printf("[ERROR] too many arguments. gateway-port | gateway-port <value>\n");
+    print("[ERROR] too many arguments. gateway-port | gateway-port <value>\n");
   }
 }
 
@@ -132,10 +132,10 @@ static void cmd_gateway_port(char *argv[], int argc) {
  * --------------------------------------------------------------------- */
 void initialize_kv(void) {
   // create all the commands for reading and writing kv values 
-  add_cmd("wifi-ssid",cmd_wifi_ssid,HTTPINTERFACE | CONSOLEINTERFACE);
-  add_cmd("wifi-password",cmd_wifi_password, HTTPINTERFACE | CONSOLEINTERFACE);
-  add_cmd("gateway-address",cmd_gateway_address, HTTPINTERFACE | CONSOLEINTERFACE);
-  add_cmd("gateway-port",cmd_gateway_port, HTTPINTERFACE | CONSOLEINTERFACE);
+  add_cmd("wifi-ssid",cmd_wifi_ssid,CONSOLEINTERFACE);
+  add_cmd("wifi-password",cmd_wifi_password, CONSOLEINTERFACE);
+  add_cmd("gateway-address",cmd_gateway_address, CONSOLEINTERFACE);
+  add_cmd("gateway-port",cmd_gateway_port, CONSOLEINTERFACE);
   
 }
 

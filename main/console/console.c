@@ -120,7 +120,9 @@ void console_event_loop(void) {
     cmd_p cmd = find_cmd(argv[0]);
 
     if (cmd != NULL) {
-      cmd->func(argv, argc);
+      // find the print function that matches our interface
+      printfunc print = find_cmd_print_func(CONSOLEINTERFACE);
+      cmd->func(argv, argc, print);
     } else {
       printf("[ERROR] Command %s not found.\n", argv[0]);
     }
