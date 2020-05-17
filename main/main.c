@@ -1,3 +1,6 @@
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+
 #include "filesystem/filesystem.h"
 #include "storage/storage.h"
 #include "console/console.h"
@@ -20,11 +23,10 @@
 
 EventGroupHandle_t app_event_group;
 
-
-void create_app_event_group() {
-}
-
 void app_main(void) {
+
+  app_event_group = xEventGroupCreate();
+  
 
   initialize_commands();
   initialize_storage();
@@ -33,17 +35,19 @@ void app_main(void) {
   initialize_kv();
   initialize_id();
   initialize_time();
-  initialize_wifi();
+  initialize_wifi(app_event_group);
 
 
   
   
-  initialize_executor();
+  initialize_executor(app_event_group);
     
   // enter the event loop of console. Control will not return until console is
   // stopped
   console_event_loop();
 
+
+  vEventGroupDelete(app_event_group);
 
   // these are actually not being called. 
   finalize_console();
