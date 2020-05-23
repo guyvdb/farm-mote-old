@@ -16,6 +16,7 @@
 #include "esp_err.h"
 
 #include "../kv/kv.h"
+#include "../event/event.h"
 
 
 #define HOST_IP_ADDR "192.168.8.100"
@@ -29,8 +30,13 @@ static const char *payload = "PING\n";
 static struct sockaddr_in dest_addr;
 static int running = 0;
 
-void initialize_executor(void) {
+//static EventGroupHandle_t app_event_group;
+
+
+
+void initialize_executor() {
   running = 1;
+  //app_event_group = events;
   xTaskCreate(executor_task, "executor_task", 4096, NULL, 5, NULL);
 }
 
@@ -96,19 +102,36 @@ static int open_socket_connection() {
 
 // close the socket 
 static void close_socket_connection(int sock) {
+  shutdown(sock, 0);
+  close(sock);
 }
+
+
 
 
 void executor_task( void *pvParameters ) {
 
-  
 
+
+
+  
   char rx_buffer[128];
+
+  const TickType_t xTicksToWait = 20000 / portTICK_PERIOD_MS;
+  //  EventGroupHandle_t app_event_group = get_app_event_group();
+
+  /// block for WIFI_GOT_IP
+
+
+  printf("==========================+> Wait for WIFI_GOT_IP bit\n");
+
+xEventGroupWaitBits(get_app_event_group(),WIFI_GOT_IP,0,0,xTicksToWait);
+ 
   
 
-  printf("=======================================> executor_task started... will delay\n");
-  vTaskDelay(5000 / portTICK_PERIOD_MS);
-  printf("=======================================> delay over\n");
+  //  printf("=======================================> executor_task started... will delay\n");
+  //vTaskDelay(5000 / portTICK_PERIOD_MS);
+  printf("=======================================> Wait over\n");
 
 
   int sock = open_socket_connection();
@@ -121,27 +144,9 @@ void executor_task( void *pvParameters ) {
       ESP_LOGE(TAG, "Error occurred during sending: errno %d", errno);
      
     }
-
-    /* int len = recv(sock, rx_buffer, sizeof(rx_buffer) - 1, 0);
-      if (len < 0) {
-        ESP_LOGE(TAG, "recv failed: errno %d", errno);
-      } else {
-        rx_buffer[len] = 0; // Null-terminate whatever we received and treat like a string
-        ESP_LOGI(TAG, "Received %d bytes", len);
-        ESP_LOGI(TAG, "%s", rx_buffer);
-      }
-    */
       
-      vTaskDelay(2000 / portTICK_PERIOD_MS);
-      printf("-\n");
-    
-
-      /*if (sock != -1) {
-      printf("?????\n");
-      ESP_LOGE(TAG, "Shutting down socket and restarting...");
-      shutdown(sock, 0);
-      close(sock);
-      }*/
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    printf("-\n");
   }
   
   vTaskDelete(NULL);

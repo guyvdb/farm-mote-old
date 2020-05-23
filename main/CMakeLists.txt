@@ -10,6 +10,7 @@ idf_component_register(SRCS
   "kv/kv.c"
   "id/id.c"
   "time/time.c"
+  "event/event.c"
   "main.c"
 
   
