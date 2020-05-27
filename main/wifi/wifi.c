@@ -60,32 +60,32 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
     case SYSTEM_EVENT_STA_START:
  	    ESP_LOGI(TAG, "STA_START %s %d\n", __func__, __LINE__);
 
-      set_app_event_bits(WIFI_INITIALIZED);
+      //set_app_event_bits(WIFI_INITIALIZED);
 
       
-      //xEventGroupSetBits(app_event_group, WIFI_INITIALIZED);
+      xEventGroupSetBits(app_event_group, WIFI_INITIALIZED);
  	    ESP_LOGI(TAG, "Connecting..\n");
  	    esp_wifi_connect();
       break;
     case SYSTEM_EVENT_STA_STOP:
  	    ESP_LOGI(TAG, "STA_STOP %s %d\n", __func__, __LINE__);
 
-      clear_app_event_bits(WIFI_INITIALIZED);
+      //clear_app_event_bits(WIFI_INITIALIZED);
 
-      //xEventGroupClearBits(app_event_group, WIFI_INITIALIZED);
+      xEventGroupClearBits(app_event_group, WIFI_INITIALIZED);
  	    ESP_ERROR_CHECK( esp_wifi_deinit());
       break;
     case SYSTEM_EVENT_STA_GOT_IP:
  	    ESP_LOGI(TAG, "STA_GOT_IP %s %d\n", __func__, __LINE__);
-      set_app_event_bits(WIFI_GOT_IP);
+      //set_app_event_bits(WIFI_GOT_IP);
 
-      //xEventGroupSetBits(app_event_group, WIFI_CONNECTED);
+      xEventGroupSetBits(app_event_group, WIFI_CONNECTED);
       break;
     case SYSTEM_EVENT_STA_LOST_IP:
  	    ESP_LOGI(TAG, "STA_LOST_IP %s %d\n", __func__, __LINE__);
 
-      clear_app_event_bits(WIFI_CONNECTED);
-      //xEventGroupClearBits(app_event_group, WIFI_CONNECTED);
+      //clear_app_event_bits(WIFI_CONNECTED);
+      xEventGroupClearBits(app_event_group, WIFI_CONNECTED);
  	    break;
     case SYSTEM_EVENT_STA_CONNECTED:
  	    ESP_LOGI(TAG, "STA_CONNECTED %s %d\n", __func__, __LINE__);
@@ -93,8 +93,8 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
     case SYSTEM_EVENT_STA_DISCONNECTED:
  	    ESP_LOGI(TAG, "STA_DISCONNECTED %s %d\n", __func__, __LINE__);
 
-      clear_app_event_bits(WIFI_CONNECTED);
-      //	    xEventGroupClearBits(app_event_group, WIFI_CONNECTED);
+      //clear_app_event_bits(WIFI_CONNECTED);
+      xEventGroupClearBits(app_event_group, WIFI_CONNECTED);
       break;
     default:
  	    ESP_LOGI(TAG, "XXX_DEFAULT %s %d\n", __func__, __LINE__);

@@ -125,7 +125,7 @@ void executor_task( void *pvParameters ) {
 
   printf("==========================+> Wait for WIFI_GOT_IP bit\n");
 
-xEventGroupWaitBits(get_app_event_group(),WIFI_GOT_IP,0,0,xTicksToWait);
+  xEventGroupWaitBits(app_event_group,WIFI_CONNECTED,0,0,xTicksToWait);
  
   
 
