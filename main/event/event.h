@@ -12,6 +12,13 @@
 #define WIFI_GOT_IP        BIT3
 
 
+
+
+
+
+
+
+
 #define EVENT_NETWORK (1 << 0)
 #define EVENT_SENSOR (1 << 1)
 #define EVENT_ACTUATOR ( 1 << 2)

@@ -3,6 +3,7 @@ idf_component_register(SRCS
   "storage/storage.c"
   "console/console.c"
   "executor/executor.c"
+  "executor/protocol.c"
   "relay/relay.c"
   "wifi/wifi.c"
   "state/state.c"

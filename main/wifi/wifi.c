@@ -1,5 +1,4 @@
 #include "wifi.h"
-
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
@@ -11,93 +10,89 @@
 #include "esp_log.h"
 #include "esp_err.h"
 #include "nvs_flash.h"
-
 #include "lwip/err.h"
 #include "lwip/sys.h"
-
 #include "../kv/kv.h"
-
 #include "../command/command.h"
 #include "../event/event.h"
 
-
-
-#define EXAMPLE_ESP_MAXIMUM_RETRY  2
-
-
-
-
+#define RETRY_MAX  10
 
 static char wifi_ssid[32];
 static char wifi_password[64];
-//static EventGroupHandle_t app_event_group;
-static const char *TAG = "WIFI";
+
+static int retry_count;
+static int retry_delay;
 
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-static void cmd_wifi(char *argv[], int argc, printfunc print){
+static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
 
-  if (argc != 2) {
-    printf("[ERROR] wrong number of arguments. wifi start | wifi stop.\n");
-  } else {
-    if (strcmp("start",argv[1]) == 0) {
-      wifi_ap_connect();
-    } else if (strcmp("stop",argv[1]) == 0) {
-      wifi_ap_disconnect();
-    } else {
-      printf("[ERROR] unknown argument. wifi start | wifi stop.\n");
-    }
-  }
-}
-
-
-/* ------------------------------------------------------------------------
- * 
- * --------------------------------------------------------------------- */
-static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+  printf("-------> INSIDE WIFI HANDLER: ");
+  
     switch (event_id) {
     case SYSTEM_EVENT_STA_START:
- 	    ESP_LOGI(TAG, "STA_START %s %d\n", __func__, __LINE__);
-
-      //set_app_event_bits(WIFI_INITIALIZED);
-
-      
       xEventGroupSetBits(app_event_group, WIFI_INITIALIZED);
- 	    ESP_LOGI(TAG, "Connecting..\n");
+      printf("Connecting... (STA_START)\n");
  	    esp_wifi_connect();
       break;
     case SYSTEM_EVENT_STA_STOP:
- 	    ESP_LOGI(TAG, "STA_STOP %s %d\n", __func__, __LINE__);
-
-      //clear_app_event_bits(WIFI_INITIALIZED);
-
       xEventGroupClearBits(app_event_group, WIFI_INITIALIZED);
  	    ESP_ERROR_CHECK( esp_wifi_deinit());
+      printf("Disconnected...(STA_STOP)\n");
       break;
-    case SYSTEM_EVENT_STA_GOT_IP:
- 	    ESP_LOGI(TAG, "STA_GOT_IP %s %d\n", __func__, __LINE__);
-      //set_app_event_bits(WIFI_GOT_IP);
-
-      xEventGroupSetBits(app_event_group, WIFI_CONNECTED);
-      break;
-    case SYSTEM_EVENT_STA_LOST_IP:
- 	    ESP_LOGI(TAG, "STA_LOST_IP %s %d\n", __func__, __LINE__);
-
-      //clear_app_event_bits(WIFI_CONNECTED);
-      xEventGroupClearBits(app_event_group, WIFI_CONNECTED);
- 	    break;
     case SYSTEM_EVENT_STA_CONNECTED:
- 	    ESP_LOGI(TAG, "STA_CONNECTED %s %d\n", __func__, __LINE__);
+      xEventGroupSetBits(app_event_group,WIFI_CONNECTED);
+      printf("Connected...\n");
+      retry_count = 0;
+      retry_delay = 1000; // retry in 1 second
  	    break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
- 	    ESP_LOGI(TAG, "STA_DISCONNECTED %s %d\n", __func__, __LINE__);
-
-      //clear_app_event_bits(WIFI_CONNECTED);
       xEventGroupClearBits(app_event_group, WIFI_CONNECTED);
+      xEventGroupClearBits(app_event_group,  WIFI_GOT_IP);
+      printf("Disconnected...\n");
+      // try to reconnect here ...
+
+
+      retry_count++;
+      int seconds = retry_delay / 1000;
+      printf("Will retry connecting in %d seconds...\n", seconds);
+      vTaskDelay(retry_delay / portTICK_PERIOD_MS);
+      retry_delay = retry_delay * 2;
+      if (retry_delay > 16000) {
+        retry_delay = 16000;
+      }
+
+      esp_wifi_connect();
+           
       break;
     default:
- 	    ESP_LOGI(TAG, "XXX_DEFAULT %s %d\n", __func__, __LINE__);
+      printf("Got unkown event: base = %d, event = %d\n", (int)event_base, event_id);
+      break;
+    }
+}
+
+
+
+
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+static void ip_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+    switch (event_id) {
+    case IP_EVENT_STA_GOT_IP:
+      xEventGroupSetBits(app_event_group,  WIFI_GOT_IP);
+      printf("Got IP...\n");
+      break;
+    case IP_EVENT_STA_LOST_IP:
+      xEventGroupClearBits(app_event_group,  WIFI_GOT_IP);
+      printf("Lost IP...\n");
+ 	    break;
+    default:
+      printf("Got unkown event: base = %d, event = %d\n", (int)event_base, event_id);
       break;
     }
 }
@@ -107,14 +102,38 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-void wifi_ap_initialize() {
-  //esp_err_t err ;
+//void wifi_ap_initialize() {
 
+//}
+
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void initialize_wifi(void) {
+  //   wifi_ap_initialize();
+
+  //esp_err_t err ;
 
   // create event group 
   //app_event_group = xEventGroupCreate();
 
 
+
+
+  retry_count = 0;
+  retry_delay = 1000; // retry in 1 second
+
+  
+
+  esp_log_level_set("wifi", ESP_LOG_NONE);
+
+
+
+  //ESP_ERROR_CHECK(tcpip_adapter_init());
+
+  
   // init wifi 
   ESP_ERROR_CHECK(esp_netif_init());
 
@@ -124,10 +143,18 @@ void wifi_ap_initialize() {
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
   ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-  ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL));
-  ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL));
 
 
+
+  ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, &ip_event_handler, NULL));
+  ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
+
+  //ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_LOST_IP, &event_handler, NULL));
+  //  ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL));
+
+
+
+  
   // setup ssid + password
   get_wifi_ssid(wifi_ssid, sizeof(wifi_ssid));
   get_wifi_password(wifi_password, sizeof(wifi_password));
@@ -148,38 +175,7 @@ void wifi_ap_initialize() {
   ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config) );
   ESP_ERROR_CHECK(esp_wifi_start() );
 
-
-  // unregister event handlers
-  ESP_ERROR_CHECK(esp_event_handler_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler));
-  ESP_ERROR_CHECK(esp_event_handler_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler));
-}
-
-/* ------------------------------------------------------------------------
- * 
- * --------------------------------------------------------------------- */
-void wifi_ap_connect(void) {
-  //ESP_ERROR_CHECK(esp_wifi_start() );
-}
-
-
-/* ------------------------------------------------------------------------
- * 
- * --------------------------------------------------------------------- */
-void wifi_ap_disconnect(void) {
-  //  ESP_ERROR_CHECK(esp_wifi_stop());
-}
-
-
-/* ------------------------------------------------------------------------
- * 
- * --------------------------------------------------------------------- */
-void initialize_wifi(void) {
-   add_cmd("wifi",cmd_wifi, CONSOLEINTERFACE);
-
-   //app_event_group = events;
-   
-   wifi_ap_initialize();
-   wifi_ap_connect();
+  
 }
 
 /* ------------------------------------------------------------------------
@@ -187,5 +183,7 @@ void initialize_wifi(void) {
  * --------------------------------------------------------------------- */
 void deinitialize_wifi(void) {
 
-
+  // unregister event handlers
+  //ESP_ERROR_CHECK(esp_event_handler_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler));
+  //ESP_ERROR_CHECK(esp_event_handler_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler));
 }
