@@ -1,5 +1,5 @@
 #include "executor.h"
-#include "protocol.h"
+#include "frame.h"
 
 #include <string.h>
 
@@ -34,7 +34,7 @@
 static char host[128];
 static uint16_t port;
 
-static const char *payload = "PING\n";
+//static const char *payload = "PING\n";
 static struct sockaddr_in dest_addr;
 static int running = 0;
 
@@ -176,38 +176,6 @@ static int socket_disconnect(int sock) {
   return -1;
 }
 
-
-static void assert_frame(uint8_t *data, size_t len) {
-  uint8_t c[6];
-
-  c[0] = 2;
-  c[1] = 68;
-  c[2] = 65;
-  c[3] = 84;
-  c[4] = 65;
-  c[5] = 3;
-
-
-
-  if (len != 6) {
-    printf("=============== >ASSERT FRAME: FAILED (wrong length)\n");
-    return;
-  }
-
-  for(int i=0;i<6;i++){
-    if(c[i] != data[i]) {
-      printf("=============== >ASSERT FRAME: FAILED byte %d should be %d but is %d\n", i, c[i], data[i]);
-      return;
-      
-    }
-  }
-
-  printf("=============== >ASSERT FRAME: PASS\n");
-
-  
-
-}
-
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
@@ -224,7 +192,7 @@ void executor_task( void *pvParameters ) {
 
   // initialize some vars 
   failed_socket_count = 0;
-  protobuf_reset();
+  framebuf_reset();
 
 
   // start main loop
@@ -257,21 +225,22 @@ void executor_task( void *pvParameters ) {
         printf("] %d bytes\n--END READ--\n\n", nbytes);
         
         // write to protobuf 
-        protobuf_write(rx_buf,nbytes);
+        framebuf_write(rx_buf,nbytes);
 
         // check for a frame 
-        int fsize = protobuf_frame_size();
+        int fsize = framebuf_frame_size();
         
         if (fsize <  RX_BUF_SIZE) {
           if (fsize > 0) {
-            // deframe 
-            protobuf_deframe(rx_buf, fsize);
-            printf ("--FRAME--\n[");
-            for(int i=0;i<fsize;i++) {
-              printf("%d ",rx_buf[i]);
-            }
-            printf("] %d bytes\n--END FRAME--\n\n", fsize);
-            assert_frame(rx_buf, fsize);
+
+
+            //deframe
+            framebuf_deframe(rx_buf, fsize);
+
+            frame_t *frame = frame_from_bytes(rx_buf, fsize);
+            frame_print(frame, rx_buf, fsize);
+            frame_free(frame);
+            
           } 
         } else {
           printf("Out of Memory Error. Cannot deframe.\n");
