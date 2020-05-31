@@ -19,7 +19,7 @@
 
 #include "../kv/kv.h"
 #include "../event/event.h"
-#include "../command/command.h"
+#include "../console/command.h"
 
 
 #define MAX_FAILED_SOCKETS_TO_REBOOT 10
@@ -45,8 +45,8 @@ static int failed_socket_count;
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-static void cmd_reboot(char *argv[], int argc, printfunc print){
-  print("Will reboot in 1 second\n");
+static void cmd_reboot(char *argv[], int argc){
+  printf("Will reboot in 1 second\n");
   vTaskDelay(1000 / portTICK_PERIOD_MS);
   esp_restart();
 }
@@ -57,7 +57,7 @@ static void cmd_reboot(char *argv[], int argc, printfunc print){
  * --------------------------------------------------------------------- */
 void initialize_executor() {
   running = 1;
-  add_cmd("reboot",cmd_reboot, CONSOLEINTERFACE);  
+  add_console_cmd("reboot",cmd_reboot);  
   xTaskCreate(executor_task, "executor_task", 4096, NULL, 5, NULL);
 }
 

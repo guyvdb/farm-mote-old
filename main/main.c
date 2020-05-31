@@ -2,8 +2,8 @@
 #include "filesystem/filesystem.h"
 #include "storage/storage.h"
 #include "console/console.h"
+#include "console/command.h"
 #include "wifi/wifi.h"
-#include "command/command.h"
 #include "kv/kv.h"
 #include "id/id.h"
 #include "time/time.h"
@@ -14,7 +14,7 @@
 void app_main(void) {
 
   
-  initialize_commands();
+  initialize_console_commands();
   initialize_storage();
   initialize_filesystem();
   initialize_events();
@@ -33,6 +33,6 @@ void app_main(void) {
   // these are actually not being called. 
   finalize_console();
   finalize_executor();
-  finalize_commands();
+  finalize_console_commands();
   finalize_events();
 }

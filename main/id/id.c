@@ -2,18 +2,18 @@
 #include "esp_system.h"
 #include "id.h"
 
-#include "../command/command.h"
+#include "../console/command.h"
 
 
 
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-static void cmd_id(char *argv[], int argc, printfunc print) {
+static void cmd_id(char *argv[], int argc) {
   esp_err_t err;
   uint8_t address;
   err = esp_base_mac_addr_get(&address);
-  print("id %d\n", address);
+  printf("id %d\n", address);
 }
 
 
@@ -22,7 +22,7 @@ static void cmd_id(char *argv[], int argc, printfunc print) {
  * --------------------------------------------------------------------- */
 void initialize_id(void) {
   // create all the commands for reading and writing kv values 
-  add_cmd("id",cmd_id,SOCKETINTERFACE | CONSOLEINTERFACE);
+  add_console_cmd("id",cmd_id);
 }
 
  

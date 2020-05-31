@@ -13,7 +13,7 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 #include "../kv/kv.h"
-#include "../command/command.h"
+//#include "../console/command.h"
 #include "../event/event.h"
 
 #define RETRY_MAX  10
@@ -28,9 +28,6 @@ static int retry_delay;
  * 
  * --------------------------------------------------------------------- */
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
-
-  printf("-------> INSIDE WIFI HANDLER: ");
-  
     switch (event_id) {
     case SYSTEM_EVENT_STA_START:
       xEventGroupSetBits(app_event_group, WIFI_INITIALIZED);

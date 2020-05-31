@@ -12,8 +12,9 @@
 
 
 #include "console.h"
+#include "command.h"
 #include "../storage/storage.h"
-#include "../command/command.h"
+
 
 
 
@@ -117,12 +118,11 @@ void console_event_loop(void) {
     int argc = parse_cmdline(line);
 
     // find a command that matches argv[0]
-    cmd_p cmd = find_cmd(argv[0]);
+    cmd_p cmd = find_console_cmd(argv[0]);
 
     if (cmd != NULL) {
-      // find the print function that matches our interface
-      printfunc print = find_cmd_print_func(CONSOLEINTERFACE);
-      cmd->func(argv, argc, print);
+      // find the print function that matches our interface   
+      cmd->func(argv, argc);
     } else {
       printf("[ERROR] Command %s not found.\n", argv[0]);
     }

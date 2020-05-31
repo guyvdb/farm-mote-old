@@ -5,13 +5,13 @@
 
 #include "kv.h"
 #include "../storage/storage.h"
-#include "../command/command.h"
+#include "../console/command.h"
 
 
 
 #define MAX_STRING_VALUE_LEN 128
 
-static void cmd_wifi(char *argv[], int argc, printfunc print) {
+static void cmd_wifi(char *argv[], int argc) {
   char value[MAX_STRING_VALUE_LEN];
   esp_err_t err;
 
@@ -19,44 +19,44 @@ static void cmd_wifi(char *argv[], int argc, printfunc print) {
     if(strcmp(argv[1], "ip")==0) {     
       tcpip_adapter_ip_info_t ip_info;
 	    ESP_ERROR_CHECK(tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &ip_info));
-	    print("wifi ip %s\n", ip4addr_ntoa(&ip_info.ip));    
+	    printf("wifi ip %s\n", ip4addr_ntoa(&ip_info.ip));    
     } else if (strcmp(argv[1], "password")==0) {
       if (argc ==3) {
         err = set_wifi_password(argv[2]);
         if (err == ESP_OK) {
-          print("wifi password *set*\n");
+          printf("wifi password *set*\n");
         } else {
-          print("error %d %s\n", err, esp_err_to_name(err));
+          printf("error %d %s\n", err, esp_err_to_name(err));
         }
       } else {
         err = get_wifi_password(value,sizeof(value));
         if (err == ESP_OK) {
-          print("wifi password %s\n", value);
+          printf("wifi password %s\n", value);
         } else {
-          print("error %d  %s\n", err, esp_err_to_name(err));
+          printf("error %d  %s\n", err, esp_err_to_name(err));
         }
       }
     } else if (strcmp(argv[1], "ssid")==0) {
       if (argc ==3) {
         err = set_wifi_ssid(argv[2]);
         if (err == ESP_OK) {
-          print("wifi ssid *set*\n");
+          printf("wifi ssid *set*\n");
         } else {
-          print("error %d %s\n", err, esp_err_to_name(err));
+          printf("error %d %s\n", err, esp_err_to_name(err));
         }
       } else {
         err = get_wifi_ssid(value,sizeof(value));
         if (err == ESP_OK) {
-          print("wifi ssid %s\n", value);
+          printf("wifi ssid %s\n", value);
         } else {
-          print("error %d  %s\n", err, esp_err_to_name(err));
+          printf("error %d  %s\n", err, esp_err_to_name(err));
         }
       }
     } else {
-      print("wifi [ssid|password|ip] <value>.\n");  
+      printf("wifi [ssid|password|ip] <value>.\n");  
     }
   } else {
-    print("wifi [ssid|password|ip] <value>.\n");  
+    printf("wifi [ssid|password|ip] <value>.\n");  
   }
 }
 
@@ -66,7 +66,7 @@ static void cmd_wifi(char *argv[], int argc, printfunc print) {
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-static void cmd_gateway(char *argv[], int argc, printfunc print) {
+static void cmd_gateway(char *argv[], int argc) {
   char value[MAX_STRING_VALUE_LEN];
   uint16_t port;
   esp_err_t err;
@@ -76,16 +76,16 @@ static void cmd_gateway(char *argv[], int argc, printfunc print) {
       if (argc ==3) {
         err = set_gateway_address(argv[2]);
         if (err == ESP_OK) {
-          print("gateway address *set*\n");
+          printf("gateway address *set*\n");
         } else {
-          print("error %d %s\n", err, esp_err_to_name(err));
+          printf("error %d %s\n", err, esp_err_to_name(err));
         }
       } else {
         err = get_gateway_address(value,sizeof(value));
         if (err == ESP_OK) {
-          print("gateway address %s\n", value);
+          printf("gateway address %s\n", value);
         } else {
-          print("error %d  %s\n", err, esp_err_to_name(err));
+          printf("error %d  %s\n", err, esp_err_to_name(err));
         }
       }
     } else if (strcmp(argv[1], "port")==0) {
@@ -93,23 +93,23 @@ static void cmd_gateway(char *argv[], int argc, printfunc print) {
         port = atoi(argv[1]);
         err = set_gateway_port(port);
         if (err == ESP_OK) {
-          print("gateway port *set*\n");
+          printf("gateway port *set*\n");
         } else {
-          print("error %d %s\n", err, esp_err_to_name(err));
+          printf("error %d %s\n", err, esp_err_to_name(err));
         }
       } else {
         err = get_gateway_port(&port);
         if (err == ESP_OK) {
-          print("gateway port %d\n", port);
+          printf("gateway port %d\n", port);
         } else {
-          print("error %d  %s\n", err, esp_err_to_name(err));
+          printf("error %d  %s\n", err, esp_err_to_name(err));
         }
       }
     } else {
-      print("gateway [address|port] <value>.\n");  
+      printf("gateway [address|port] <value>.\n");  
     }
   } else {
-    print("gateway [address|port] <value>.\n");   
+    printf("gateway [address|port] <value>.\n");   
   }
 }
 
@@ -119,8 +119,8 @@ static void cmd_gateway(char *argv[], int argc, printfunc print) {
  * --------------------------------------------------------------------- */
 void initialize_kv(void) {
   // create all the commands for reading and writing kv values 
-  add_cmd("wifi",cmd_wifi,CONSOLEINTERFACE);
-  add_cmd("gateway",cmd_gateway, CONSOLEINTERFACE);
+  add_console_cmd("wifi",cmd_wifi);
+  add_console_cmd("gateway",cmd_gateway);
 }
 
 /* ------------------------------------------------------------------------

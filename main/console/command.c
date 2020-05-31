@@ -19,15 +19,13 @@ static void freecmd(cmd_p cmd) {
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-void initialize_commands(void) {
+void initialize_console_commands(void) {
   root_command = (cmd_p)malloc(sizeof(cmd_t));
   root_command->name = (char*)malloc(5);
   strcpy(root_command->name, "ROOT");
   root_command->prev = 0x0;
   root_command->next = 0x0;
   root_command->func = 0x0;
-  root_command->interface = NOINTERFACE;
-
   last_command = root_command;
 }
 
@@ -35,7 +33,7 @@ void initialize_commands(void) {
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-void finalize_commands(void) {
+void finalize_console_commands(void) {
   // delete all the commands 
 
   cmd_p prev;
@@ -61,7 +59,7 @@ void finalize_commands(void) {
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-cmd_p add_cmd(char *name, cmdfunc *func, cmd_interface interface) {
+cmd_p add_console_cmd(char *name, cmdfunc *func) {
   // set up the new command
   cmd_p cmd = (cmd_p)malloc(sizeof(cmd_t));
   cmd->next = 0x0;
@@ -69,7 +67,6 @@ cmd_p add_cmd(char *name, cmdfunc *func, cmd_interface interface) {
   cmd->name = (char *)malloc(strlen(name));
   strcpy(cmd->name, name);
   cmd->func = func;
-  cmd->interface = interface;
 
   // the current last_command->next must now == new command
   last_command->next = (void*)cmd ;
@@ -84,7 +81,7 @@ cmd_p add_cmd(char *name, cmdfunc *func, cmd_interface interface) {
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-cmd_p find_cmd(char *name) {
+cmd_p find_console_cmd(char *name) {
   cmd_p ptr = root_command;
 
   while(1) {  
@@ -103,6 +100,6 @@ cmd_p find_cmd(char *name) {
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-printfunc find_cmd_print_func(cmd_interface interface) {
-  return printf;
-}
+//printfunc find_cmd_print_func(cmd_interface interface) {
+//  return printf;
+//}

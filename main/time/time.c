@@ -6,7 +6,7 @@
 #include <sys/time.h>
 #include <stdio.h>
 
-#include "../command/command.h"
+#include "../console/command.h"
 
 
 
@@ -15,7 +15,7 @@
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-static void cmd_time(char *argv[], int argc, printfunc print) {
+static void cmd_time(char *argv[], int argc) {
 
   if (argc == 1) {
   
@@ -35,7 +35,7 @@ static void cmd_time(char *argv[], int argc, printfunc print) {
     // "%a %Y-%m-%d %H:%M:%S %Z"
       
     strftime(buffer, sizeof(buffer),"%Y-%m-%dT%H:%M:%S" , ts);
-    print("time %s\n", buffer);
+    printf("time %s\n", buffer);
   } else {
     // Set Time 
 
@@ -47,7 +47,7 @@ static void cmd_time(char *argv[], int argc, printfunc print) {
     // "%Y-%m-%dT%H:%M:%S.%f"
     // "%a %m/%d/%Y %r"
     if (strptime(argv[1],"%Y-%m-%dT%H:%M:%S" ,&result) == NULL) {
-      print("\nstrptime failed\n");
+      printf("\nstrptime failed\n");
     } else {
       time = mktime(&result);
       val.tv_sec = time;
@@ -56,9 +56,9 @@ static void cmd_time(char *argv[], int argc, printfunc print) {
 
       rc = settimeofday(&val, NULL);
       if (rc == 0) {
-        print("time set\n");
+        printf("time set\n");
       } else {
-        print("time set failed with errno = %d\n",rc);
+        printf("time set failed with errno = %d\n",rc);
       }
 
     }
@@ -70,7 +70,7 @@ static void cmd_time(char *argv[], int argc, printfunc print) {
  * 
  * --------------------------------------------------------------------- */
 void initialize_time(void) {
-  add_cmd("time",cmd_time,SOCKETINTERFACE | CONSOLEINTERFACE);
+  add_console_cmd("time",cmd_time);
 }
 
 
