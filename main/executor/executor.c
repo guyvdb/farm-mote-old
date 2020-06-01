@@ -38,6 +38,7 @@ static int failed_socket_count;
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
+// TODO: this must move out of this file into console/cmd_system.c
 static void cmd_reboot(char *argv[], int argc){
   printf("Will reboot in 1 second\n");
   vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -203,6 +204,7 @@ void executor_task( void *pvParameters ) {
         //do nothing 
       } else if (nbytes == 0) {
         printf("Disconnected\n");
+        socket_disconnect(sock);
         sock = -1;
       } else {
 

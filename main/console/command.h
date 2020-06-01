@@ -1,13 +1,12 @@
 #pragma once
 
-// Which interface can respond to this type of command 
-//enum { NOINTERFACE = 0x1, SOCKETINTERFACE = 0x2, CONSOLEINTERFACE = 0x4 };
+//TODO the type cmdfunc should be changed to console_cmdfn
+//TODO the type cmd should be changed to console_cmd
+//TODO the type cmd_p should be dropped
 
 
-
-//typedef int (*printfunc)(const char *format, ...);
 typedef void (cmdfunc)(char *argv[], int argc);
-//typedef int cmd_interface;
+
 
 struct cmd {
   char *name;

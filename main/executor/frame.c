@@ -11,6 +11,13 @@
 static framebuf_t buffer; // the one and only framebuf circular buffer 
 
 
+
+/* ========================================================================
+ * ============================== FRAME  ==================================
+ * ======================================================================== */
+
+
+
 /* ------------------------------------------------------------------------
  * Allocate a frame structure. Also allocate space for the payload, if any.
  * The caller must free the memory.
@@ -18,6 +25,8 @@ static framebuf_t buffer; // the one and only framebuf circular buffer
 frame_t *frame_create(uint8_t *payload, uint8_t len) {
   frame_t *frame = malloc(sizeof(frame_t));
   frame->len = len;
+  frame->next = 0x0;
+  frame->prev = 0x0;
   
   
   if (len > 0) {
@@ -46,6 +55,9 @@ frame_t *frame_from_bytes(uint8_t *data, size_t len) {
 
   // alloc frame memory 
   frame_t *frame = malloc(sizeof(frame_t));
+
+  frame->next = 0x0;
+  frame->prev = 0x0;
 
   // skip SFLAG - increment 1 byte
   ptr++;
@@ -145,6 +157,13 @@ void frame_print(frame_t *frame, uint8_t *bytes, size_t size) {
   
   printf("-- END FRAME --\n\n");
 }
+
+
+
+/* ========================================================================
+ * ============================ FRAMEBUF  =================================
+ * ======================================================================== */
+
 
 
 /* ------------------------------------------------------------------------
@@ -301,3 +320,34 @@ int framebuf_deframe(uint8_t *data, size_t len) {
   return 1;
 }
 
+
+
+/* ========================================================================
+ * ============================ FRAMELST  =================================
+ * ======================================================================== */
+
+
+// Create a framelst
+framelst_t *framelst_create() {
+}
+
+// Free a frame list. This does not free any memory associated with
+// frames. It only frees the list memory
+void framelst_free(framelst_t *lst) {
+}
+
+// Add a frame to the frame list
+void framelst_add(framelst_t *lst, frame_t *frame) {
+}
+
+// Remove a frame from a framelst. This does NOT free the frame memory.
+int framelst_remove(framelst_t *lst, frame_t *frame) {
+}
+
+// Find a frame by id in a framelst
+frame_t *framelst_find_frame_by_id(framelst_t *lst, uint8_t id) {
+}
+
+// Find a frame by refid in a framelst
+frame_t *framelst_find_frame_by_refid(framelst_t *lst, uint8_t refid) {
+}
