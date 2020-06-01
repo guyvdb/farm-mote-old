@@ -25,19 +25,12 @@
 #define MAX_FAILED_SOCKETS_TO_REBOOT 10
 #define MAX_CONNECTION_DELAY 4000
 #define RX_BUF_SIZE 256
-
-
-//#define HOST_IP_ADDR "192.168.8.100"
-//#define PORT 3000
 #define MAX_ERROR 300
 
 static char host[128];
 static uint16_t port;
-
-//static const char *payload = "PING\n";
 static struct sockaddr_in dest_addr;
 static int running = 0;
-
 static int connection_delay;
 static int failed_socket_count;
 
@@ -51,7 +44,6 @@ static void cmd_reboot(char *argv[], int argc){
   esp_restart();
 }
 
-
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
@@ -61,15 +53,12 @@ void initialize_executor() {
   xTaskCreate(executor_task, "executor_task", 4096, NULL, 5, NULL);
 }
 
-
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
 void finalize_executor(void) {
 
 }
-
-
 
 /* ------------------------------------------------------------------------
  *  Create and return the open socket 

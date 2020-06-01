@@ -12,7 +12,8 @@ static framebuf_t buffer; // the one and only framebuf circular buffer
 
 
 /* ------------------------------------------------------------------------
- * 
+ * Allocate a frame structure. Also allocate space for the payload, if any.
+ * The caller must free the memory.
  * --------------------------------------------------------------------- */
 frame_t *frame_create(uint8_t *payload, uint8_t len) {
   frame_t *frame = malloc(sizeof(frame_t));
@@ -36,55 +37,38 @@ frame_t *frame_create(uint8_t *payload, uint8_t len) {
 
 
 /* ------------------------------------------------------------------------
- * 
+ * Allocate a frame structure. Populate it with the data bytes. Also allocate
+ * and populate the payload, if any. The caller must free the memory.
  * --------------------------------------------------------------------- */
 frame_t *frame_from_bytes(uint8_t *data, size_t len) {
   int flen;
-
   uint8_t *ptr = data;
 
-  
   // alloc frame memory 
   frame_t *frame = malloc(sizeof(frame_t));
 
-  
-
   // skip SFLAG - increment 1 byte
-  //printf("sflag byte[0] = %d\n", ptr[0]);
   ptr++;
 
-  
-
   // version
-  //printf("version byte[0] = %d\n", ptr[0]);
   frame->version = bytes_uint8_decode(ptr); ptr += 1;
-
-
   
   // id
-  //printf("id byte[0] = %d, byte[1] = %d\n", ptr[0], ptr[1]);
   frame->id =  bytes_uint16_decode(ptr);  ptr += 2;
 
-
   // tcount
-  //printf("tcount byte[0] = %d\n", ptr[0]);
   frame->tcount = bytes_uint8_decode(ptr); ptr += 1;
 
   // transmitted timestamp
-  //printf("transmitted byte[0] = %d, byte[1] = %d, byte[2] = %d, byte[3] = %d\n", ptr[0], ptr[1], ptr[2], ptr[3]);
   frame->transmitted = (int32_t)bytes_uint32_decode(ptr); ptr += 4;
 
   // ref id
-  //printf("ref id byte[0] = %d, byte[1] = %d\n", ptr[0], ptr[1]);
   frame->refid = bytes_uint16_decode(ptr); ptr += 2;
 
-  
   // cmd
-  //printf("cmd byte[0] = %d\n", ptr[0]);
   frame->cmd = bytes_uint8_decode(ptr); ptr += 1;
 
   // len
-  //printf("len byte[0] = %d\n", ptr[0]);
   frame->len = bytes_uint8_decode(ptr); ptr += 1;
   flen = (int)frame->len;
 
@@ -106,7 +90,7 @@ frame_t *frame_from_bytes(uint8_t *data, size_t len) {
 }
 
 /* ------------------------------------------------------------------------
- * 
+ * Free the memory allocated for the frame and the payload.
  * --------------------------------------------------------------------- */
 void frame_free(frame_t *frame) {
 
@@ -163,37 +147,25 @@ void frame_print(frame_t *frame, uint8_t *bytes, size_t size) {
 }
 
 
-
-
-// CLEAN UP BELOW -----------------------------------------
-
-
-
-
-
-
-
-
-
-
-
 /* ------------------------------------------------------------------------
- * 
+ * find the index in the circular buffer of first occurence of nonescaped 
+ * data starting from head and proceeding to tail. return index or -1
  * --------------------------------------------------------------------- */
-// find the index of first occurence of nonescaped data
-// starting from head and proceeding to tail. return index or -1
-int index(uint8_t data) {
+static int index(uint8_t data) {
   size_t size = framebuf_size();
   int ptr = buffer.head;
+  int escape = 0;
+
+  
   
   for(int i=0;i<size;i++) {
     if(buffer.data[ptr] == ESCAPE) {
-      // skip the next data element even if it matches
-      printf("WARNING: escape is not implemented yet.\n");
+      escape = 1;
     } else {
-      if(buffer.data[ptr] == data) {
+      if(buffer.data[ptr] == data && escape != 1) {
         return ptr;
       }
+      escape = 0;
     }
 
     if(ptr + 1 == buffer.tail) {
@@ -214,11 +186,8 @@ int index(uint8_t data) {
   return -1;
 }
 
-
-///// Public
-
 /* ------------------------------------------------------------------------
- * 
+ * reset the frame buffer to "empty"
  * --------------------------------------------------------------------- */
 void framebuf_reset() {
   buffer.head = 0;
@@ -226,9 +195,8 @@ void framebuf_reset() {
 }
 
 /* ------------------------------------------------------------------------
- * 
+ * how much data is currently in the buffer 
  * --------------------------------------------------------------------- */
-// how much data is currently in the buffer 
 int framebuf_size() {
   if(buffer.head == buffer.tail) {
     // empty or full
@@ -243,7 +211,7 @@ int framebuf_size() {
 }
 
 /* ------------------------------------------------------------------------
- * 
+ * put a single byte of data into the frame buffer
  * --------------------------------------------------------------------- */
 int framebuf_put(uint8_t data) {
   // we write to tail and then advance the tail ....
@@ -254,12 +222,11 @@ int framebuf_put(uint8_t data) {
   if (buffer.tail >= FRAMEBUFLEN) {
     buffer.tail = 0;
   }
-
   return 1;
 }
 
 /* ------------------------------------------------------------------------
- * 
+ * write an array of bytes to the frame buffer
  * --------------------------------------------------------------------- */
 int framebuf_write(uint8_t *data, size_t len) {
   for(int i=0;i<len;i++) {
@@ -269,9 +236,8 @@ int framebuf_write(uint8_t *data, size_t len) {
 }
 
 /* ------------------------------------------------------------------------
- * 
+ * return the byte size of the next ready frame or -1 if no frame is ready.
  * --------------------------------------------------------------------- */
-// return the size of the next ready frame or -1
 int framebuf_frame_size() {
   int start = index(SFLAG);
   if (start == -1) {
@@ -290,36 +256,48 @@ int framebuf_frame_size() {
   if (start < end) {
     return end - start + 1;
   }
- 
+  
   return FRAMEBUFLEN - (start - end) + 1;
 }
 
 
 /* ------------------------------------------------------------------------
+ * deframe len bytes from the buffer. len needs to be the correct size of 
+ * the next frame. it can be found by calling framebuf_frame_size().
+ * data (the result) needs to be big enough to hold len bytes.
  * 
+ * Control characters are removed from the bytes. I.e. data is unescaped.
  * --------------------------------------------------------------------- */
-// deframe len bytes from the buffer. data needs to
-// be big enough to hold len bytes
 int framebuf_deframe(uint8_t *data, size_t len) {
-  int ptr = buffer.head;
+  int srcptr = buffer.head;
+  int destptr = 0;
+  int escape = 0;
 
   for(int i=0;i<len;i++) {
-    data[i] = buffer.data[ptr];
 
-    // increment the ptr 
-    ptr++;
-
+    // do we have the escape char and are not in escape
+    if (buffer.data[srcptr] == ESCAPE && escape == 0) {
+      // skip writing the control character to dest and do
+      // not increment the dest pointer
+      escape = 1;
+      srcptr++;
+    } else {
+      // write src to dest and increment both pointers
+      data[destptr] = buffer.data[srcptr];
+      srcptr++;
+      destptr++;
+      escape = 0;      
+    }
     
     // if ptr has reached the end of the array set it to the beginning
-    if (ptr >= FRAMEBUFLEN) {
-      ptr = 0;
+    if (srcptr >= FRAMEBUFLEN) {
+      srcptr = 0;
     }              
   }
 
   // head is now ptr
-  buffer.head = ptr ;
+  buffer.head = srcptr ;
 
   return 1;
-
 }
 
