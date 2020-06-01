@@ -329,6 +329,7 @@ int framebuf_deframe(uint8_t *data, size_t len) {
 
 // Create a framelst
 framelst_t *framelst_create() {
+  return 0x0;
 }
 
 // Free a frame list. This does not free any memory associated with
@@ -342,12 +343,15 @@ void framelst_add(framelst_t *lst, frame_t *frame) {
 
 // Remove a frame from a framelst. This does NOT free the frame memory.
 int framelst_remove(framelst_t *lst, frame_t *frame) {
+  return 0;
 }
 
 // Find a frame by id in a framelst
 frame_t *framelst_find_frame_by_id(framelst_t *lst, uint8_t id) {
+  return 0x0;
 }
 
 // Find a frame by refid in a framelst
 frame_t *framelst_find_frame_by_refid(framelst_t *lst, uint8_t refid) {
+  return 0x0;
 }

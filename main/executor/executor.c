@@ -1,5 +1,6 @@
 #include "executor.h"
 #include "frame.h"
+#include "network.h"
 
 #include <string.h>
 
@@ -22,17 +23,17 @@
 #include "../console/command.h"
 
 
-#define MAX_FAILED_SOCKETS_TO_REBOOT 10
-#define MAX_CONNECTION_DELAY 4000
+//#define MAX_FAILED_SOCKETS_TO_REBOOT 10
+//#define MAX_CONNECTION_DELAY 4000
 #define RX_BUF_SIZE 256
-#define MAX_ERROR 300
+//#define MAX_ERROR 300
 
-static char host[128];
-static uint16_t port;
-static struct sockaddr_in dest_addr;
+//static char host[128];
+//static uint16_t port;
+//static struct sockaddr_in dest_addr;
 static int running = 0;
-static int connection_delay;
-static int failed_socket_count;
+//static int connection_delay;
+//static int failed_socket_count;
 
 
 /* ------------------------------------------------------------------------
@@ -64,7 +65,7 @@ void finalize_executor(void) {
 /* ------------------------------------------------------------------------
  *  Create and return the open socket 
  * --------------------------------------------------------------------- */
-static int socket_connect() {
+/*static int socket_connect() {
 
   esp_err_t err;
   int addr_family;
@@ -86,12 +87,6 @@ static int socket_connect() {
      return -1;
   }
 
-  // gateway port 
-  err = get_gateway_port(&port);
-  if (err != ESP_OK) {
-    // printf("[ERROR] %s\n", esp_err_to_name(err));
-     return -1;
-  }
 
   
   dest_addr.sin_addr.s_addr = inet_addr(host);
@@ -152,22 +147,26 @@ static int socket_connect() {
     connection_delay = 0;
     return sock;
   }
-}
+  }
+*/
 
 
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
 // close the socket 
-static int socket_disconnect(int sock) {
+/*static int socket_disconnect(int sock) {
   // do the actual shutdown 
   shutdown(sock, 0);
   close(sock);
   return -1;
 }
+*/
+
+
 
 /* ------------------------------------------------------------------------
- * 
+ * The exector main task 
  * --------------------------------------------------------------------- */
 void executor_task( void *pvParameters ) {
   uint8_t rx_buf[ RX_BUF_SIZE];
@@ -175,36 +174,80 @@ void executor_task( void *pvParameters ) {
   int sock = -1;
   EventBits_t flag;
   int ip_ok;
+  
+  // initialize some vars 
+  // failed_socket_count = 0;
+  framebuf_reset();
+
 
   // Wait to get an IP
   const TickType_t xTicksToWait = 10000 / portTICK_PERIOD_MS; 
   xEventGroupWaitBits(app_event_group,WIFI_GOT_IP,0,0,xTicksToWait);
 
-  // initialize some vars 
-  failed_socket_count = 0;
-  framebuf_reset();
-
+  
 
   // start main loop
   while (running) {
+    // do we have an IP 
     flag = xEventGroupGetBits(app_event_group);
     ip_ok = (flag & WIFI_GOT_IP);
 
     // if we have an IP and no socket create a socket 
     if (ip_ok && (sock < 0)) {
-      sock = socket_connect();
+      sock =  socket_create();
+      if (sock >= 0) {
+        if(!socket_connect(sock)) {
+          socket_destroy();
+          sock = -1;
+        }
+      }
     }
 
     // if we have a socket and ip try read from the server ... 
     if (ip_ok && (sock >= 0)) {
+
+
+      // ---------- READ ----------
       nbytes = read (sock, rx_buf,  RX_BUF_SIZE - 1);
       if (nbytes < 0){
-        // socket in error state
-        //printf("Read Timeout\n");
-        //do nothing 
+        printf("[Error] read error. errno = %d - ", errno);
+        switch(errno) {
+        case EAGAIN:
+          // Try again. This is a read timeout 
+          printf("EAGAIN (try again)\n");
+          break;
+        case EBADF:
+          // Bad file number. The socket should be destroyed and recreated
+          printf("EBADF (bad file number)\n");
+          socket_disconnect(sock);
+          socket_destroy();
+          sock = -1;
+          break;
+        case ECONNRESET:
+          printf("ECONNRESET (connection reset by peer)\n");
+          socket_disconnect(sock);
+          socket_destroy();
+          sock = -1;
+          break;
+        case EHOSTUNREACH :
+          printf("EHOSTUNREACH (no route to host)\n");
+          socket_disconnect(sock);
+          socket_destroy();
+          sock = -1;
+          break;
+        default:
+          printf("UNKNOWN\n");
+
+          socket_disconnect(sock);
+          socket_destroy();
+          sock = -1;
+          break;
+          
+        }
       } else if (nbytes == 0) {
         printf("Disconnected\n");
         socket_disconnect(sock);
+        socket_destroy();
         sock = -1;
       } else {
 
@@ -240,6 +283,9 @@ void executor_task( void *pvParameters ) {
       }
     }   
 
+
+
+    // ---------- WRITE ----------
     
     // Do we have any client instructions in the queue
     if (ip_ok && (sock >=0)) {
