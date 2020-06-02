@@ -4,36 +4,28 @@
 
 #include <string.h>
 
-#include "lwip/err.h"
-#include "lwip/sockets.h"
-#include "lwip/sys.h"
+#include <lwip/err.h>
+#include <lwip/sockets.h>
+#include <lwip/sys.h>
 #include <lwip/netdb.h>
 
 
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/event_groups.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/event_groups.h>
 
-#include "esp_log.h"
-#include "esp_err.h"
+#include <esp_log.h>
+#include <esp_err.h>
 
 #include "../kv/kv.h"
 #include "../event/event.h"
 #include "../console/command.h"
+#include "../console/log.h"
 
 
-//#define MAX_FAILED_SOCKETS_TO_REBOOT 10
-//#define MAX_CONNECTION_DELAY 4000
 #define RX_BUF_SIZE 256
-//#define MAX_ERROR 300
-
-//static char host[128];
-//static uint16_t port;
-//static struct sockaddr_in dest_addr;
 static int running = 0;
-//static int connection_delay;
-//static int failed_socket_count;
 
 
 /* ------------------------------------------------------------------------
@@ -41,7 +33,7 @@ static int running = 0;
  * --------------------------------------------------------------------- */
 // TODO: this must move out of this file into console/cmd_system.c
 static void cmd_reboot(char *argv[], int argc){
-  printf("Will reboot in 1 second\n");
+  log_info("System will reboot in 1 second.");
   vTaskDelay(1000 / portTICK_PERIOD_MS);
   esp_restart();
 }
@@ -63,109 +55,6 @@ void finalize_executor(void) {
 }
 
 /* ------------------------------------------------------------------------
- *  Create and return the open socket 
- * --------------------------------------------------------------------- */
-/*static int socket_connect() {
-
-  esp_err_t err;
-  int addr_family;
-  int ip_protocol;
-  char addr_str[128];
-
-
-  struct timeval tv;
-
-  
-  tv.tv_sec = 1;
-  tv.tv_usec = 0; // 
-
-  
-  // gateway address
-  err = get_gateway_address(host, sizeof(host));
-  if (err != ESP_OK) {
-     printf("[ERROR] %s\n", esp_err_to_name(err));
-     return -1;
-  }
-
-
-  
-  dest_addr.sin_addr.s_addr = inet_addr(host);
-  dest_addr.sin_family = AF_INET;
-  dest_addr.sin_port = htons(port);
-  addr_family = AF_INET;
-  ip_protocol = IPPROTO_IP;
-  inet_ntoa_r(dest_addr.sin_addr, addr_str, sizeof(addr_str) - 1);
-
-
-  // implement a connection delay
-
-
-    // increase the connection delay for next connection
-  if (connection_delay == 0) {
-    connection_delay = 1000;
-  } else {
-    connection_delay = connection_delay * 2;
-  }
-
-  // do not delay more that 16 seconds
-  if (connection_delay > MAX_CONNECTION_DELAY) {
-    connection_delay = MAX_CONNECTION_DELAY;
-  }
-
-
-  int sec = connection_delay / 1000;
-  printf("will connect in %d seconds\n", sec);
-  vTaskDelay(connection_delay / portTICK_PERIOD_MS);
-
-  
-  int sock =  socket(addr_family, SOCK_STREAM, ip_protocol);
-
-
-  if (sock < 0) {
-    
-    failed_socket_count++;
-
-    printf("failed to create socket. Count=%d\n", failed_socket_count);
-    // reboot if our failed socket count gets too high 
-    if (failed_socket_count > MAX_FAILED_SOCKETS_TO_REBOOT) {
-      esp_restart();
-    }
-
-    
-    return sock;
-  }
-
-  setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
- 
-
-  int cerr = connect(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-  if (cerr != 0) {
-    printf("Connect Error.\n");
-    return -1;
-  } else {
-    printf("Connected.\n");
-    connection_delay = 0;
-    return sock;
-  }
-  }
-*/
-
-
-/* ------------------------------------------------------------------------
- * 
- * --------------------------------------------------------------------- */
-// close the socket 
-/*static int socket_disconnect(int sock) {
-  // do the actual shutdown 
-  shutdown(sock, 0);
-  close(sock);
-  return -1;
-}
-*/
-
-
-
-/* ------------------------------------------------------------------------
  * The exector main task 
  * --------------------------------------------------------------------- */
 void executor_task( void *pvParameters ) {
@@ -176,7 +65,6 @@ void executor_task( void *pvParameters ) {
   int ip_ok;
   
   // initialize some vars 
-  // failed_socket_count = 0;
   framebuf_reset();
 
 
@@ -210,7 +98,17 @@ void executor_task( void *pvParameters ) {
       // ---------- READ ----------
       nbytes = read (sock, rx_buf,  RX_BUF_SIZE - 1);
       if (nbytes < 0){
-        printf("[Error] read error. errno = %d - ", errno);
+
+        log_std_error(errno, "Networking read error.");
+
+
+        if (errno != EAGAIN) {
+          socket_disconnect(sock);
+          socket_destroy();
+          sock = -1;
+        }
+        
+        /*
         switch(errno) {
         case EAGAIN:
           // Try again. This is a read timeout 
@@ -244,8 +142,10 @@ void executor_task( void *pvParameters ) {
           break;
           
         }
+        */
       } else if (nbytes == 0) {
-        printf("Disconnected\n");
+        log_std_error(errno, "Networking is disconnected.");
+        //        printf("Disconnected\n");
         socket_disconnect(sock);
         socket_destroy();
         sock = -1;

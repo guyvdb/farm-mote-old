@@ -3,6 +3,7 @@ idf_component_register(SRCS
   "storage/storage.c"
   "console/console.c"
   "console/command.c"
+  "console/log.c"
   "executor/executor.c"
   "executor/frame.c"
   "executor/bytes.c"

@@ -1,29 +1,25 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "esp_log.h"
-#include "esp_console.h"
-#include "linenoise/linenoise.h"
-#include "argtable3/argtable3.h"
-#include "driver/uart.h"
-#include "esp_vfs_dev.h"
-
-#include "esp_err.h"
+#include <esp_log.h>
+#include <esp_console.h>
+#include <linenoise/linenoise.h>
+#include <argtable3/argtable3.h>
+#include <driver/uart.h>
+#include <esp_vfs_dev.h>
+#include <esp_err.h>
 
 
 #include "console.h"
 #include "command.h"
+#include "log.h"
 #include "../storage/storage.h"
-
-
-
 
 #define MOUNT_PATH "/data"
 
 #define MAX_CMDLINE_LEN 256
 #define MAX_CMDLINE_ARGS 10
 static char *argv[MAX_CMDLINE_ARGS]; // the command line arguments
-//static char *cmdline_buf;
 
 
 /* ------------------------------------------------------------------------

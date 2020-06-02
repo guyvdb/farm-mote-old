@@ -1,14 +1,11 @@
 #include "network.h"
 
-//#include "lwip/err.h"
 #include <lwip/sockets.h>
-//#include "lwip/sys.h"
-//#include <lwip/netdb.h>
-
-//#include <freertos/FreeRTOS.h>
 #include <esp_err.h>
 
 #include "../kv/kv.h"
+#include "../console/log.h"
+
 
 #define MAXCONNDELAYSECONDS 10
 
@@ -21,8 +18,9 @@ static struct sockaddr_in dest_addr;
 
 
 
-
-// create the socket. return the socket handle 
+/* ------------------------------------------------------------------------
+ * create the socket. return the socket handle 
+ * --------------------------------------------------------------------- */
 int socket_create() {
   esp_err_t err;
   int addr_family;
@@ -36,18 +34,17 @@ int socket_create() {
   tv.tv_usec = 0; // the socket read timeout in mircoseconds
    
   if(createdflag == 0) {
-
     // Get the gateway address 
     err = get_gateway_address(host, sizeof(host));
     if (err != ESP_OK) {
-      printf("[ERROR] %s - failed to get gateway address\n", esp_err_to_name(err));
+      log_error("Networking failed to get gateway address. %s.",esp_err_to_name(err));
       return -1;
     }
 
     // Get the gateway port
     err = get_gateway_port(&port);
     if (err != ESP_OK) {
-      printf("[ERROR] %s - failed to get gateway port\n", esp_err_to_name(err));
+      log_error("Networking failed to get gateway port. %s.",esp_err_to_name(err));
       return -1;
     }
 
@@ -60,23 +57,18 @@ int socket_create() {
     addr_family = AF_INET;
     ip_protocol = IPPROTO_IP;
 
-    // The example does not do this.....
-    //inet_ntoa_r(dest_addr.sin_addr, host, sizeof(host) - 1);
-
-
     // Create the socket 
     sock =  socket(addr_family, SOCK_STREAM, ip_protocol);
 
-
     // was there an error in creating the socket 
     if (sock < 0) {
-      printf("[ERROR] Socket create error. errno = %d\n", errno);
+      log_std_error(errno, "Networking failed to create socket.");
       return sock;
     }
 
     // set the socket options
     if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv) < 0)  {
-      printf("[ERROR] Set socket options error. errno = %d\n", errno);
+      log_std_error(errno, "Networking failed to set socket options.");
       return -1;
     }
 
@@ -90,19 +82,22 @@ int socket_create() {
   }
 }
 
-// destroy the socket
+
+/* ------------------------------------------------------------------------
+ * destroy the socket
+ * --------------------------------------------------------------------- */
 void socket_destroy() {
   sock = -1;
   createdflag = 0;
 }
 
-
-// connect the socket
+/* ------------------------------------------------------------------------
+ * connect the socket
+ * --------------------------------------------------------------------- */
 int socket_connect(int sock) {
-
   int cerr = connect(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
   if (cerr != 0) {
-    printf("[ERROR] Socket connect error. errno = %d\n", errno);
+    log_std_error(errno,"Networking failed to connect.");
     return 0;
   } else {
     printf("Connected.\n");
@@ -110,31 +105,33 @@ int socket_connect(int sock) {
   }
 }
 
-
-// disconnect the socket
+/* ------------------------------------------------------------------------
+ * disconnect the socket
+ * --------------------------------------------------------------------- */
 void socket_disconnect(int sock) {
   shutdown(sock, 0);
   close(sock);
 }
 
-
-// check if the socket is valid
+/* ------------------------------------------------------------------------
+ * check if the socket is valid
+ * --------------------------------------------------------------------- */
 int socket_valid() {
   return 0;
 }
 
-// read the socket
+/* ------------------------------------------------------------------------
+ * read the socket
+ * --------------------------------------------------------------------- */
 int socket_read(){
   return 0;
 }
 
-
-// write the socket 
+/* ------------------------------------------------------------------------
+ * write the socket 
+ * --------------------------------------------------------------------- */
 int socket_write() {
   return 0;
 }
-
-
-// cause a delay in connection 
 
 
