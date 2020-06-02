@@ -4,6 +4,7 @@
 
 #include <string.h>
 
+
 #include <lwip/err.h>
 #include <lwip/sockets.h>
 #include <lwip/sys.h>
@@ -20,7 +21,6 @@
 
 #include "../kv/kv.h"
 #include "../event/event.h"
-#include "../console/command.h"
 #include "../console/log.h"
 
 
@@ -28,22 +28,12 @@
 static int running = 0;
 
 
-/* ------------------------------------------------------------------------
- * 
- * --------------------------------------------------------------------- */
-// TODO: this must move out of this file into console/cmd_system.c
-static void cmd_reboot(char *argv[], int argc){
-  log_info("System will reboot in 1 second.");
-  vTaskDelay(1000 / portTICK_PERIOD_MS);
-  esp_restart();
-}
 
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
 void initialize_executor() {
   running = 1;
-  add_console_cmd("reboot",cmd_reboot);  
   xTaskCreate(executor_task, "executor_task", 4096, NULL, 5, NULL);
 }
 
@@ -98,65 +88,21 @@ void executor_task( void *pvParameters ) {
       // ---------- READ ----------
       nbytes = read (sock, rx_buf,  RX_BUF_SIZE - 1);
       if (nbytes < 0){
-
         log_std_error(errno, "Networking read error.");
-
-
         if (errno != EAGAIN) {
           socket_disconnect(sock);
           socket_destroy();
           sock = -1;
-        }
-        
-        /*
-        switch(errno) {
-        case EAGAIN:
-          // Try again. This is a read timeout 
-          printf("EAGAIN (try again)\n");
-          break;
-        case EBADF:
-          // Bad file number. The socket should be destroyed and recreated
-          printf("EBADF (bad file number)\n");
-          socket_disconnect(sock);
-          socket_destroy();
-          sock = -1;
-          break;
-        case ECONNRESET:
-          printf("ECONNRESET (connection reset by peer)\n");
-          socket_disconnect(sock);
-          socket_destroy();
-          sock = -1;
-          break;
-        case EHOSTUNREACH :
-          printf("EHOSTUNREACH (no route to host)\n");
-          socket_disconnect(sock);
-          socket_destroy();
-          sock = -1;
-          break;
-        default:
-          printf("UNKNOWN\n");
-
-          socket_disconnect(sock);
-          socket_destroy();
-          sock = -1;
-          break;
-          
-        }
-        */
+        }            
       } else if (nbytes == 0) {
         log_std_error(errno, "Networking is disconnected.");
-        //        printf("Disconnected\n");
         socket_disconnect(sock);
         socket_destroy();
         sock = -1;
       } else {
 
-        // test print the data that we read 
-        printf ("--READ--\n[");
-        for(int i=0;i<nbytes;i++) {
-          printf("%d ",(uint8_t)rx_buf[i]);
-        }
-        printf("] %d bytes\n--END READ--\n\n", nbytes);
+        // test print the data that we read
+        log_info_uint8_array(rx_buf,nbytes,"Socket read");
         
         // write to protobuf 
         framebuf_write(rx_buf,nbytes);

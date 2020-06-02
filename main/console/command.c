@@ -1,8 +1,19 @@
 
 #include "command.h"
+#include "log.h"
+#include "../kv/kv.h"
+
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <esp_netif.h>
+#include <esp_err.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/time.h>
+
+#define MAX_STRING_VALUE_LEN 128
 
 
 cmd_p root_command;
@@ -10,6 +21,252 @@ cmd_p last_command;
 
 
 
+
+
+// ----------------------- START CONSOLE COMMANDS -------------------------
+
+
+/*
+void logging_on_off(int value);
+void prompt_on_off(int value);
+*/
+
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+static void cmd_log(char *argv[], int argc){
+  if (argc != 2) {
+    log_error("Usage: log <on|off>.");
+  } else {
+    if (strcmp(argv[1],"on")==0) {
+      logging_on_off(1);
+      log_info("Logging on.");
+    } else if(strcmp(argv[1], "off")==0) {
+      logging_on_off(1);
+      log_info("Logging off.");      
+    } else {
+      log_error("Usage: log <on|off>.");
+    }
+  }
+}
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+static void cmd_prompt(char *argv[], int argc){
+  if (argc != 2) {
+    log_error("Usage: prompt <on|off>.");
+  } else {
+    if (strcmp(argv[1],"on")==0) {
+      prompt_on_off(1);
+      log_info("Prompt on.");
+    } else if(strcmp(argv[1], "off")==0) {
+      prompt_on_off(1);
+      log_info("Prompt off.");      
+    } else {
+      log_error("Usage: prompt <on|off>.");
+    }
+  }
+}
+
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+static void cmd_reboot(char *argv[], int argc){
+  log_info("System will reboot in 1 second.");
+  vTaskDelay(1000 / portTICK_PERIOD_MS);
+  esp_restart();
+}
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+static void cmd_id(char *argv[], int argc) {
+  esp_err_t err;
+  uint8_t address;
+  err = esp_base_mac_addr_get(&address);
+  printf("id %d\n", address);
+}
+
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+static void cmd_time(char *argv[], int argc) {
+
+  if (argc == 1) {
+  
+    // Get Time
+    struct timeval tv;
+    time_t t;
+    struct tm *ts;
+    char buffer[80];
+ 
+    gettimeofday(&tv, NULL);
+    t = tv.tv_sec;
+
+    ts = localtime(&t);
+
+
+    // "%Y-%m-%dT%H:%M:%S"
+    // "%a %Y-%m-%d %H:%M:%S %Z"
+      
+    strftime(buffer, sizeof(buffer),"%Y-%m-%dT%H:%M:%S" , ts);
+    printf("time %s\n", buffer);
+  } else {
+    // Set Time 
+
+     struct tm result;
+     time_t time;
+     struct timeval val;
+     int rc;
+
+    // "%Y-%m-%dT%H:%M:%S.%f"
+    // "%a %m/%d/%Y %r"
+    if (strptime(argv[1],"%Y-%m-%dT%H:%M:%S" ,&result) == NULL) {
+      printf("\nstrptime failed\n");
+    } else {
+      time = mktime(&result);
+      val.tv_sec = time;
+      val.tv_usec = 0;
+      
+
+      rc = settimeofday(&val, NULL);
+      if (rc == 0) {
+        printf("time set\n");
+      } else {
+        printf("time set failed with errno = %d\n",rc);
+      }
+
+    }
+
+  }
+}
+
+
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+static void cmd_wifi(char *argv[], int argc) {
+  char value[MAX_STRING_VALUE_LEN];
+  esp_err_t err;
+
+  if (argc > 1) {
+    if(strcmp(argv[1], "ip")==0) {     
+      tcpip_adapter_ip_info_t ip_info;
+	    ESP_ERROR_CHECK(tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &ip_info));
+	    printf("wifi ip %s\n", ip4addr_ntoa(&ip_info.ip));    
+    } else if (strcmp(argv[1], "password")==0) {
+      if (argc ==3) {
+        err = set_wifi_password(argv[2]);
+        if (err == ESP_OK) {
+          printf("wifi password *set*\n");
+        } else {
+          printf("error %d %s\n", err, esp_err_to_name(err));
+        }
+      } else {
+        err = get_wifi_password(value,sizeof(value));
+        if (err == ESP_OK) {
+          printf("wifi password %s\n", value);
+        } else {
+          printf("error %d  %s\n", err, esp_err_to_name(err));
+        }
+      }
+    } else if (strcmp(argv[1], "ssid")==0) {
+      if (argc ==3) {
+        err = set_wifi_ssid(argv[2]);
+        if (err == ESP_OK) {
+          printf("wifi ssid *set*\n");
+        } else {
+          printf("error %d %s\n", err, esp_err_to_name(err));
+        }
+      } else {
+        err = get_wifi_ssid(value,sizeof(value));
+        if (err == ESP_OK) {
+          printf("wifi ssid %s\n", value);
+        } else {
+          printf("error %d  %s\n", err, esp_err_to_name(err));
+        }
+      }
+    } else {
+      printf("wifi [ssid|password|ip] <value>.\n");  
+    }
+  } else {
+    printf("wifi [ssid|password|ip] <value>.\n");  
+  }
+}
+
+
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+static void cmd_gateway(char *argv[], int argc) {
+  char value[MAX_STRING_VALUE_LEN];
+  uint16_t port;
+  esp_err_t err;
+
+  if (argc > 1) {
+     if (strcmp(argv[1], "address")==0) {
+      if (argc ==3) {
+        err = set_gateway_address(argv[2]);
+        if (err == ESP_OK) {
+          printf("gateway address *set*\n");
+        } else {
+          printf("error %d %s\n", err, esp_err_to_name(err));
+        }
+      } else {
+        err = get_gateway_address(value,sizeof(value));
+        if (err == ESP_OK) {
+          printf("gateway address %s\n", value);
+        } else {
+          printf("error %d  %s\n", err, esp_err_to_name(err));
+        }
+      }
+    } else if (strcmp(argv[1], "port")==0) {
+      if (argc ==3) {
+        port = atoi(argv[1]);
+        err = set_gateway_port(port);
+        if (err == ESP_OK) {
+          printf("gateway port *set*\n");
+        } else {
+          printf("error %d %s\n", err, esp_err_to_name(err));
+        }
+      } else {
+        err = get_gateway_port(&port);
+        if (err == ESP_OK) {
+          printf("gateway port %d\n", port);
+        } else {
+          printf("error %d  %s\n", err, esp_err_to_name(err));
+        }
+      }
+    } else {
+      printf("gateway [address|port] <value>.\n");  
+    }
+  } else {
+    printf("gateway [address|port] <value>.\n");   
+  }
+}
+
+
+
+// ------------------------ END CONSOLE COMMANDS --------------------------
+
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 static void freecmd(cmd_p cmd) {
   free(cmd->name);
   free(cmd);
@@ -20,6 +277,8 @@ static void freecmd(cmd_p cmd) {
  * 
  * --------------------------------------------------------------------- */
 void initialize_console_commands(void) {
+
+  // set up the root dummy command 
   root_command = (cmd_p)malloc(sizeof(cmd_t));
   root_command->name = (char*)malloc(5);
   strcpy(root_command->name, "ROOT");
@@ -27,6 +286,17 @@ void initialize_console_commands(void) {
   root_command->next = 0x0;
   root_command->func = 0x0;
   last_command = root_command;
+
+
+  // register all of the commands
+  add_console_cmd("reboot",cmd_reboot);  
+  add_console_cmd("id",cmd_id);
+  add_console_cmd("time",cmd_time);
+  add_console_cmd("wifi",cmd_wifi);
+  add_console_cmd("gateway",cmd_gateway);
+  add_console_cmd("log", cmd_log);
+  add_console_cmd("prompt", cmd_prompt);
+  
 }
 
 

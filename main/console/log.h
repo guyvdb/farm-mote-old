@@ -1,6 +1,7 @@
 #pragma once
 
-
+#include <stddef.h>
+#include <stdint.h>
 
 // Instead of using printf, functions should call the log functions
 // provided in this file. This allows logging to turned on/off
@@ -18,3 +19,5 @@ void prompt_on_off(int value);
 void log_error(const char *format, ...);
 void log_std_error(const int err, const char *format, ...);
 void log_info(const char *format, ...);
+
+void log_info_uint8_array(uint8_t *data, size_t len, const char *format, ...);

@@ -9,11 +9,12 @@
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_err.h>
+#include <esp_netif.h>
 #include <nvs_flash.h>
 #include <lwip/err.h>
 #include <lwip/sys.h>
 
-#include <tcpip_adapter.h>
+
 
 
 

@@ -1,5 +1,5 @@
 #include "log.h"
-
+#include <freertos/FreeRTOS.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <lwip/err.h>
@@ -8,18 +8,26 @@ static int logstatus = 1;
 static int promptstatus = 1;
 
 
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 // Turn console logging on/off (1/0)
 void logging_on_off(int value) {
   logstatus = value;
 }
 
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 // Turn the console prompt on/off (1/0)
 void prompt_on_off(int value){
   promptstatus = value;
 }
 
-
-
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 void log_std_error(const int err, const char *format, ...) {
   va_list args;
   const char *prompt = "farm-mote>";
@@ -61,11 +69,12 @@ void log_std_error(const int err, const char *format, ...) {
     if (promptstatus) {
       printf("%s", prompt);
     }
-  }
-  
+  }  
 }
 
-
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 static void log(const char *level, const char *format, ...) {
   va_list args;
   const char* prompt = "farm-mote> ";
@@ -86,21 +95,54 @@ static void log(const char *level, const char *format, ...) {
       printf("%s", prompt);
     }
   }
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void log_info_uint8_array(uint8_t *data, size_t len, const char *format, ...) {
+  va_list args;
+  const char *prompt = "farm-mote> ";
+
+
+  if(logstatus) {
+    if (promptstatus) {
+      printf("\n");
+    }
+    printf("[INFO] ");
+    va_start(args, format);
+    printf(format, args);
+    va_end(args);
+
+    printf(" [");
+    for(int i=0;i<len;i++) {
+      if(i+1 == len) {
+        printf("%d",data[i]);
+      } else {
+        printf("%d ",data[i]);
+      }
+    }
+    printf("]\n");
+  } 
 
   
 }
 
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 void log_error(const char *format, ...) {
   va_list args;
-
   va_start(args,format);
   log("ERROR",format,args);
   va_end(args);
 }
 
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 void log_info(const char *format, ...) {
   va_list args;
-
   va_start(args,format);
   log("INFO",format,args);
   va_end(args);

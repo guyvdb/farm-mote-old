@@ -5,8 +5,6 @@
 #include "console/command.h"
 #include "wifi/wifi.h"
 #include "kv/kv.h"
-#include "id/id.h"
-#include "time/time.h"
 #include "executor/executor.h"
 #include "event/event.h"
 
@@ -20,8 +18,6 @@ void app_main(void) {
   initialize_events();
   initialize_console();
   initialize_kv();
-  initialize_id();
-  initialize_time();
   initialize_wifi();
   initialize_executor();
     

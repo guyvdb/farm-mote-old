@@ -12,8 +12,6 @@ idf_component_register(SRCS
   "wifi/wifi.c"
   "state/state.c"
   "kv/kv.c"
-  "id/id.c"
-  "time/time.c"
   "event/event.c"
   "main.c"
 
