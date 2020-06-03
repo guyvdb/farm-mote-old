@@ -77,3 +77,19 @@ esp_err_t get_gateway_port(uint16_t *port) {
 esp_err_t set_gateway_port(uint16_t port) {
   return write_storage_uint16_key("gateway.port", port);
 }
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+esp_err_t get_id(uint32_t *value) {
+  return read_storage_uint32_key("id", value);
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+esp_err_t set_id(uint32_t value) {
+  return write_storage_uint32_key("id", value);
+}
+
+

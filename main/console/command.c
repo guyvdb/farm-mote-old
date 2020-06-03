@@ -95,6 +95,11 @@ static void cmd_id(char *argv[], int argc) {
 }
 
 
+static void cmd_mem(char *argv[], int argc) {
+  uint32_t fmem = esp_get_free_heap_size();
+  printf("mem free %d\n", fmem);    
+}
+
 
 /* ------------------------------------------------------------------------
  * 
@@ -296,6 +301,7 @@ void initialize_console_commands(void) {
   add_console_cmd("gateway",cmd_gateway);
   add_console_cmd("log", cmd_log);
   add_console_cmd("prompt", cmd_prompt);
+  add_console_cmd("mem", cmd_mem);
   
 }
 

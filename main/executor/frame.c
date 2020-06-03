@@ -6,42 +6,69 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <assert.h>
-
+#include <string.h>
+#include <sys/time.h>
 
 static framebuf_t buffer; // the one and only framebuf circular buffer 
-
+static uint16_t nextid = 0;
 
 
 /* ========================================================================
  * ============================== FRAME  ==================================
  * ======================================================================== */
 
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+uint16_t frame_next_id(void) {
+  nextid ++;
 
+  if (nextid==0) {
+    nextid = 1;
+  }
+  return nextid;
+}
+
+void frame_args_begin(frame_t *frame) {
+  frame->argptr = 0;
+}
+
+void frame_args_end(frame_t *frame) {
+  frame->argptr = 0;
+}
 
 /* ------------------------------------------------------------------------
  * Allocate a frame structure. Also allocate space for the payload, if any.
  * The caller must free the memory.
  * --------------------------------------------------------------------- */
-frame_t *frame_create(uint8_t *payload, uint8_t len) {
+frame_t *frame_create(uint8_t cmd, uint8_t payloadlen) {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  
+  
+  
   frame_t *frame = malloc(sizeof(frame_t));
-  frame->len = len;
+  frame->len = payloadlen;
   frame->next = 0x0;
   frame->prev = 0x0;
+  frame->argptr = 0x0;
+  frame->version = FRAMEVERSION;
+  frame->id = frame_next_id();
+  frame->refid = 0x0;
+  frame->cmd = cmd;
+  frame->tcount = 1;
+  frame->transmitted = (int32_t)tv.tv_sec;
+
   
-  
-  if (len > 0) {
-    int plen = (int)len;
+  if (payloadlen > 0) {
+    int plen = (int)payloadlen;
     frame->payload = malloc(plen);
-    
-    for(int i=0;i<plen;i++) {
-      frame->payload[i] = payload[i];
-    }    
+    memset((void*)frame->payload,0x0,plen);
   } else {
     frame->payload = 0x0;
   }
 
   return frame;
-  
 }
 
 
@@ -58,6 +85,7 @@ frame_t *frame_from_bytes(uint8_t *data, size_t len) {
 
   frame->next = 0x0;
   frame->prev = 0x0;
+  frame->argptr = 0x0;
 
   // skip SFLAG - increment 1 byte
   ptr++;
@@ -99,6 +127,86 @@ frame_t *frame_from_bytes(uint8_t *data, size_t len) {
   }
   
   return frame;
+}
+
+/* ------------------------------------------------------------------------
+ * return the unescaped frame bytes. the caller needs to free the buffer 
+ * --------------------------------------------------------------------- */
+uint8_t *frame_encode_frame_bytes(frame_t *frame, uint8_t *len) {
+  // calculate how many frame byte we are going to use
+  int flen = FRAMELENWITHOUTPAYLOAD + (int)frame->len;
+  uint8_t *buf = (uint8_t*)malloc(flen);
+  uint8_t *ptr = buf;
+
+  *len = flen;
+  
+
+  bytes_uint8_encode(frame->version, ptr); ptr += 1;
+  bytes_uint16_encode(frame->id, ptr); ptr += 2;
+  bytes_uint8_encode(frame->tcount, ptr); ptr += 1;
+  bytes_uint32_encode(frame->transmitted, ptr); ptr += 4;
+  bytes_uint16_encode(frame->refid, ptr); ptr += 2;
+  bytes_uint8_encode(frame->cmd, ptr); ptr += 1;
+  bytes_uint8_encode(frame->len, ptr); ptr += 1;
+
+  for(int i=0; i< frame->len; i++) {
+    ptr[i] = frame->payload[i];
+  }
+
+  
+  
+  return buf;
+}
+
+/* ------------------------------------------------------------------------
+ * return the escaped network bytes including SFLAG & EFLAG. the caller 
+ * needs to free the buffer 
+ * --------------------------------------------------------------------- */
+uint8_t *frame_encode_network_bytes(frame_t *frame, uint8_t *len) {
+  uint8_t *fbuf;
+  uint8_t fbuflen;
+  uint8_t *nbuf;
+  uint8_t nbuflen;
+
+  int srcptr = 0;
+  int destptr = 0;
+
+  // alloc the frame bytes
+  fbuf = frame_encode_frame_bytes(frame, &fbuflen);
+
+  // count the number of control characters
+  nbuflen = fbuflen + 2; // 2 for SFLAG & EFLAG  
+  for(int i=0;i<fbuflen;i++) {
+    if( (fbuf[i] == SFLAG) || (fbuf[i] == EFLAG) || (fbuf[i] == ESCAPE) ){
+      nbuflen++;
+    }
+  }
+
+  // alloc the network bytes
+  nbuf = (uint8_t*)malloc((int)nbuflen);
+
+  // copy the network bytes
+  for(int i=0;i<fbuflen;i++) {
+    if( (fbuf[i] == SFLAG) || (fbuf[i] == EFLAG) || (fbuf[i] == ESCAPE) ){
+      nbuf[destptr] = ESCAPE;
+      destptr++;
+      nbuf[destptr] = fbuf[srcptr];
+      destptr++;
+      srcptr++;
+    } else {
+      nbuf[destptr] = fbuf[srcptr];
+      destptr++;
+      srcptr++;
+    }
+  }
+
+  // free the frame bytes
+  free(fbuf);
+
+  // set the result length
+  *len = nbuflen;
+
+  return nbuf;
 }
 
 /* ------------------------------------------------------------------------
@@ -159,6 +267,101 @@ void frame_print(frame_t *frame, uint8_t *bytes, size_t size) {
 }
 
 
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+int frame_get_arg_uint8(frame_t *frame, uint8_t *result){
+  uint8_t *ptr = frame->payload; 
+  ptr += frame->argptr;
+  
+  if(1 + frame->argptr <= frame->len){
+    *result = bytes_uint8_decode(ptr);
+    frame->argptr += 1;
+    return 1;
+  }
+  return 0;
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+int frame_get_arg_uint16(frame_t *frame, uint16_t *result){
+  uint8_t *ptr = frame->payload;
+  ptr += frame->argptr;
+  
+  if(2 + frame->argptr <= frame->len){
+    *result = bytes_uint16_decode(ptr);
+    frame->argptr += 2;
+    return 1;
+  }
+  return 0;  
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+int frame_get_arg_uint32(frame_t *frame, uint32_t *result){
+  uint8_t *ptr = frame->payload;
+  ptr += frame->argptr;
+  
+  if(4 + frame->argptr <= frame->len){
+    *result = bytes_uint32_decode(ptr);
+    frame->argptr += 4;
+    return 1;
+  }
+  return 0;  
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+
+int frame_put_arg_uint8(frame_t *frame, uint8_t value){
+  uint8_t *ptr = frame->payload;
+  ptr += frame->argptr;
+  
+  if(1 + frame->argptr <= frame->len) {
+    bytes_uint8_encode(value, ptr);
+    frame->argptr += 1;
+    return 1;
+  }
+  return 0;
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+int frame_put_arg_uint16(frame_t *frame, uint16_t value){
+  uint8_t *ptr = frame->payload; 
+  ptr += frame->argptr;
+  
+  if(2 + frame->argptr <= frame->len) {
+    bytes_uint16_encode(value, ptr);
+    frame->argptr += 2;
+    return 1;
+  }
+  return 0;
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+int frame_put_arg_uint32(frame_t *frame, uint32_t value){
+  uint8_t *ptr = frame->payload;
+  ptr += frame->argptr;
+
+  printf("put arg uint32: argptr = %d, len = %d, newval = %d\n",frame->argptr, frame->len, 4 + frame->argptr);
+  
+  if(4 + frame->argptr <= frame->len) {
+    bytes_uint32_encode(value, ptr);
+    frame->argptr += 4;
+    return 1;
+  }
+  return 0;
+}
+
+
+
 
 /* ========================================================================
  * ============================ FRAMEBUF  =================================
@@ -170,13 +373,11 @@ void frame_print(frame_t *frame, uint8_t *bytes, size_t size) {
  * find the index in the circular buffer of first occurence of nonescaped 
  * data starting from head and proceeding to tail. return index or -1
  * --------------------------------------------------------------------- */
-static int index(uint8_t data) {
+static int byteindex(uint8_t data) {
   size_t size = framebuf_size();
   int ptr = buffer.head;
   int escape = 0;
 
-  
-  
   for(int i=0;i<size;i++) {
     if(buffer.data[ptr] == ESCAPE) {
       escape = 1;
@@ -211,6 +412,8 @@ static int index(uint8_t data) {
 void framebuf_reset() {
   buffer.head = 0;
   buffer.tail = 0;
+  buffer.in = 0;
+  buffer.out = 0;
 }
 
 /* ------------------------------------------------------------------------
@@ -236,6 +439,7 @@ int framebuf_put(uint8_t data) {
   // we write to tail and then advance the tail ....
   buffer.data[buffer.tail] = data;
   buffer.tail++;
+  buffer.in++;
 
   // if the tail has gone beyond the size it becomes 0
   if (buffer.tail >= FRAMEBUFLEN) {
@@ -258,12 +462,12 @@ int framebuf_write(uint8_t *data, size_t len) {
  * return the byte size of the next ready frame or -1 if no frame is ready.
  * --------------------------------------------------------------------- */
 int framebuf_frame_size() {
-  int start = index(SFLAG);
+  int start = byteindex(SFLAG);
   if (start == -1) {
     return 0;
   }
 
-  int end = index(EFLAG);
+  int end = byteindex(EFLAG);
   if (end == -1) {
     return 0;
   }
@@ -293,18 +497,19 @@ int framebuf_deframe(uint8_t *data, size_t len) {
   int escape = 0;
 
   for(int i=0;i<len;i++) {
-
     // do we have the escape char and are not in escape
     if (buffer.data[srcptr] == ESCAPE && escape == 0) {
       // skip writing the control character to dest and do
       // not increment the dest pointer
       escape = 1;
       srcptr++;
+      buffer.out++;
     } else {
       // write src to dest and increment both pointers
       data[destptr] = buffer.data[srcptr];
       srcptr++;
       destptr++;
+      buffer.out++;
       escape = 0;      
     }
     
@@ -319,6 +524,24 @@ int framebuf_deframe(uint8_t *data, size_t len) {
 
   return 1;
 }
+
+
+
+
+// Analyse the frame buffer
+void framebuf_debug(void) {
+  printf("=== FRAME BUFFE ===\n");
+  printf(" head: %d\n", buffer.head);
+  printf(" tail: %d\n", buffer.tail);
+  printf(" in: %d\n", buffer.in);
+  printf(" out: %d\n", buffer.out);
+  printf(" delta: %d\n", buffer.in - buffer.out);
+  printf(" size: %d\n", framebuf_size());
+  printf(" frame size: %d\n", framebuf_frame_size());
+  printf("=== END ===\n\n");
+  
+}
+
 
 
 

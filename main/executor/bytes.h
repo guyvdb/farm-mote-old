@@ -14,8 +14,8 @@ uint32_t bytes_uint32_decode(uint8_t *data);
 
 // In the encode functions the result pointer must have enough space for the operation
 void bytes_uint8_encode(uint8_t value, uint8_t *result);
-void bytes_uint16_encode(uint8_t value, uint8_t *result);
-void bytes_uint32_encode(uint8_t value, uint8_t *result);
+void bytes_uint16_encode(uint16_t value, uint8_t *result);
+void bytes_uint32_encode(uint32_t value, uint8_t *result);
 
 
 

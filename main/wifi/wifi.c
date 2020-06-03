@@ -75,12 +75,6 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
     }
 }
 
-
-
-
-
-
-
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
@@ -110,14 +104,8 @@ void initialize_wifi(void) {
 
   retry_count = 0;
   retry_delay = 1000; // retry in 1 second
-
   
-
   esp_log_level_set("wifi", ESP_LOG_NONE);
-
-
-
-  //ESP_ERROR_CHECK(tcpip_adapter_init());
 
   
   // init wifi 
@@ -165,3 +153,18 @@ void deinitialize_wifi(void) {
   //ESP_ERROR_CHECK(esp_event_handler_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler));
   //ESP_ERROR_CHECK(esp_event_handler_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler));
 }
+
+
+
+/* ------------------------------------------------------------------------
+ * the wifi is valid if it is connected and has an IP
+ * --------------------------------------------------------------------- */
+int wifi_valid(void) {
+   EventBits_t flag = xEventGroupGetBits(app_event_group);
+   if( (flag & WIFI_CONNECTED) && (flag & WIFI_GOT_IP) ){
+     return 1;
+   } else {
+     return 0;
+   }
+}
+

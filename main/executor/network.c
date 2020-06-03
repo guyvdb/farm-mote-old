@@ -1,21 +1,19 @@
 #include "network.h"
-
 #include <lwip/sockets.h>
 #include <esp_err.h>
-
 #include "../kv/kv.h"
 #include "../console/log.h"
 
+#define MAXCONNDELAY 1000 * 30             // 30 seconds -- in milliseconds
+#define READTIMEOUT  1000 * 10             // 10 milliseconds -- in microseconds
+#define RXBUFLEN  MAXESCAPEDFRAMELEN
 
-#define MAXCONNDELAYSECONDS 10
-
-
-// the socket descriptor
-static int createdflag = 0; // have we created a socket 
-static int sock = -1;
-static int conndelay = 0; // time to delay the connection in seconds
-static struct sockaddr_in dest_addr;
-
+static int createdflag = 0;                // have we created a socket
+static int connectedflag = 0;              // have we connected the socket
+static int sock = -1;                      // the socket handle 
+static int conndelay = 0;                  // time to delay the connection in seconds
+static struct sockaddr_in dest_addr;       // the gateway address
+static uint8_t rxbuf[RXBUFLEN];            // the read buffer 
 
 
 /* ------------------------------------------------------------------------
@@ -28,12 +26,15 @@ int socket_create() {
   char host[128];
   uint16_t port;
 
-  struct timeval tv;
+  // read timeout option
+  struct timeval tv; 
+  tv.tv_sec = 0; 
+  tv.tv_usec = READTIMEOUT; 
 
-  tv.tv_sec = 1; // the socket read timeout in seconds
-  tv.tv_usec = 0; // the socket read timeout in mircoseconds
-   
+  
   if(createdflag == 0) {
+
+    printf("createdflag is 0. creating a new socket.\n");
     // Get the gateway address 
     err = get_gateway_address(host, sizeof(host));
     if (err != ESP_OK) {
@@ -66,7 +67,7 @@ int socket_create() {
       return sock;
     }
 
-    // set the socket options
+    // set read timeout option 
     if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv) < 0)  {
       log_std_error(errno, "Networking failed to set socket options.");
       return -1;
@@ -77,30 +78,30 @@ int socket_create() {
     return sock;
     
   } else {
-    // already created - return the existing socket 
+    // already created - return the existing socket
+    printf("createdflag is 1. returning existing socket.\n");
     return sock;
   }
 }
 
 
 /* ------------------------------------------------------------------------
- * destroy the socket
- * --------------------------------------------------------------------- */
-void socket_destroy() {
-  sock = -1;
-  createdflag = 0;
-}
-
-/* ------------------------------------------------------------------------
  * connect the socket
  * --------------------------------------------------------------------- */
-int socket_connect(int sock) {
-  int cerr = connect(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-  if (cerr != 0) {
-    log_std_error(errno,"Networking failed to connect.");
-    return 0;
+int socket_connect() {
+  if(connectedflag == 0) {
+    printf("connected flag is 0. will connect.\n");
+    int cerr = connect(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+    if (cerr != 0) {
+      log_std_error(errno,"Networking failed to connect.");
+      return 0;
+    } else {
+      log_info("Networking connected to gateway.");
+      connectedflag = 1;
+      return 1;
+    }
   } else {
-    printf("Connected.\n");
+    printf("connected flag is 1. doing nothing.\n");
     return 1;
   }
 }
@@ -108,17 +109,37 @@ int socket_connect(int sock) {
 /* ------------------------------------------------------------------------
  * disconnect the socket
  * --------------------------------------------------------------------- */
-void socket_disconnect(int sock) {
+void socket_disconnect() {
   shutdown(sock, 0);
   close(sock);
+  connectedflag = 0;
+  createdflag = 0;
+  sock = -1;
 }
+
 
 /* ------------------------------------------------------------------------
  * check if the socket is valid
  * --------------------------------------------------------------------- */
 int socket_valid() {
-  return 0;
+  if (connectedflag == 0 || createdflag == 0) {
+    return 0;
+  } else {
+    return 1;
+  }
 }
+
+
+// check if the socket is created
+int socket_created() {
+  return createdflag;
+}
+
+// check if the socket is connected
+int socket_connected() {
+  return connectedflag;
+}
+
 
 /* ------------------------------------------------------------------------
  * read the socket
@@ -134,4 +155,66 @@ int socket_write() {
   return 0;
 }
 
+/* ------------------------------------------------------------------------
+ * read a frame of the socket. a frame is created on success. it is the 
+ * responsability of the caller to free the memory. null is returned if a 
+ * frame is not available.
+ * --------------------------------------------------------------------- */
+frame_t *socket_read_frame() {
+  int fsize;
+  int nbytes = read(sock, rxbuf, RXBUFLEN - 1);
+  if (nbytes < 0) {
+    log_std_error(errno,"Networing read error.");
+    if (errno != EAGAIN) {
+      socket_disconnect();
+    }
+    return 0x0;  
+  } else if (nbytes == 0) {
+    log_std_error(errno, "Network is disconnected.");
+    socket_disconnect();
+    return 0x0;
+  } else {
+    log_info_uint8_array(rxbuf, nbytes, "Socket read");
+    framebuf_write(rxbuf, nbytes);
+    fsize = framebuf_frame_size();
+    if(fsize > 0) {
+      if (fsize > RXBUFLEN) {
+        // this should never happen 
+        log_error("Out of memory. RX buffer is %d bytes but frame is %d bytes", RXBUFLEN, fsize);
+        framebuf_debug();
+        return 0x0;
+      }
+      // allocate a new frame & return it 
+      frame_t *frame = frame_from_bytes(rxbuf, fsize);
+      frame_print(frame, rxbuf, fsize);
+      return frame;      
+    } else {
+      return 0x0;
+    }
+  }
+}
 
+/* ------------------------------------------------------------------------
+ * write a frame onto the socket. 1 = success, 0 = error 
+ * --------------------------------------------------------------------- */
+int socket_write_frame(frame_t *frame) {
+  uint8_t *data;
+  uint8_t len;
+
+  data = frame_encode_network_bytes(frame, &len);
+
+
+  // print the network bytes
+  log_info_uint8_array(data, (size_t)len,"Network Bytes To Send:");
+  
+
+  free(data);
+  
+
+  // we need to turn the frame into bytes that are escaped
+
+  
+
+  
+  return 0;
+}

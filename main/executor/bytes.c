@@ -16,17 +16,6 @@ uint8_t bytes_uint8_decode(uint8_t *data) {
  * 
  * --------------------------------------------------------------------- */
 uint16_t bytes_uint16_decode(uint8_t *data) {
-
-  // lets print out some data
-
-  //printf("bytes_uint16_decode:\ndata[0]=%d,data[1]=%d\n",data[0],data[1]);
-
-  //uint16_t v = (data[0] << 8) + data[1];
-  //printf("value: %d\n", v);
-  
-
-
-  
   return (data[0] << 8) + data[1];
 }
 
@@ -53,7 +42,7 @@ void bytes_uint8_encode(uint8_t value, uint8_t *result) {
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-void bytes_uint16_encode(uint8_t value, uint8_t *result) {
+void bytes_uint16_encode(uint16_t value, uint8_t *result) {
   result[0] = value >>  8;
   result[1] = value;
 }
@@ -62,7 +51,7 @@ void bytes_uint16_encode(uint8_t value, uint8_t *result) {
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-void bytes_uint32_encode(uint8_t value, uint8_t *result) {
+void bytes_uint32_encode(uint32_t value, uint8_t *result) {
   result[0] = value >> 24;
   result[1] = value >> 16;
   result[2] = value >>  8;

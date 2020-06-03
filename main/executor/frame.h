@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "freertos/FreeRTOS.h"
@@ -10,11 +11,16 @@
 #define FRAMEVERSION 0x1
 
 
-#define FRAMEBUFLEN 256 // how big is the ring buffer for extracting frames 
-#define ESCAPE 0x1B
-#define SFLAG 0x2
-#define EFLAG 0x3
+#define FRAMEBUFLEN 2048 // how big is the ring buffer for extracting frames 
+#define ESCAPE 0x1B      // 27
+#define SFLAG 0x2        // 2
+#define EFLAG 0x3        // 3
 
+
+#define MAXUNESCAPEDFRAMELEN   512 // frame is 16 + 2 flags + 255 payload = 273
+#define MAXESCAPEDFRAMELEN     MAXUNESCAPEDFRAMELEN * 2
+
+#define FRAMELENWITHOUTPAYLOAD 12
 
 
 // The framebuf is a circular buffer. Data is copied from the network stream buffer into the framebuf.
@@ -24,19 +30,21 @@ struct framebuf {
   uint8_t data[FRAMEBUFLEN];
   size_t head;
   size_t tail;
+  size_t in;
+  size_t out;
 };
 typedef struct framebuf framebuf_t;
 
 
 // Structure of a frame on the wire
 //
-// |--------------|---------------|------------|-------------------|---------------------|---------------|------------|-----------|--------------------|--------------|
-// | SFLAG 1 byte | version 1byte | id 2 bytes | retransmit 1 byte | transmitted 4 bytes | refid 2 bytes | cmd 1 byte | len 1byte | payload <varbytes> | EFLAG 1 byte |
-// |--------------|---------------|------------|-------------------|---------------------|---------------|------------|-----------|--------------------|--------------|
+// |--------------|---------------|------------|---------------|---------------------|---------------|------------|-----------|--------------------|--------------|
+// | SFLAG 1 byte | version 1byte | id 2 bytes | tcount 1 byte | transmitted 4 bytes | refid 2 bytes | cmd 1 byte | len 1byte | payload <varbytes> | EFLAG 1 byte |
+// |--------------|---------------|------------|---------------|---------------------|---------------|------------|-----------|--------------------|--------------|
 //
 // The SFLAG and EFLAG are not part of the frame. 
-// The frame is 16 bytes + payload size
-// The transmitted bytes are 18 bytes + payload size
+// The frame is 12 bytes + payload size
+// The transmitted bytes are 14 bytes + payload size
 // The meaning of payload is individually defined by each command
 //
 struct frame {
@@ -75,6 +83,10 @@ struct frame {
 
   // This is the payload of this frame.
   uint8_t *payload;
+
+  // argument pointer used to insert/extract payloads
+  // either insert or extract - mutually exclusive 
+  uint8_t argptr;
 };
 typedef struct frame frame_t;
 
@@ -89,9 +101,13 @@ typedef struct framelst framelst_t;
 typedef void (frame_iterate)(char *argv[], int argc);
 
 
+// ================ FRAME ==================
+
+// get the next frame id
+uint16_t frame_next_id(void);
 
 // Create a frame. Memory is allocated for the frame and len bytes is allocated for the payload
-frame_t *frame_create(uint8_t *payload, uint8_t len);
+frame_t *frame_create(uint8_t cmd, uint8_t payloadlen);
 
 // Create a frame from a set of bytes that includes the SFRAME and EFRAME flags that are not part
 // of the frame. Memory is allocated via frame_create().
@@ -102,6 +118,31 @@ void frame_free(frame_t *frame);
 
 // Print a decoded frame 
 void frame_print(frame_t *frame, uint8_t *bytes, size_t size);
+
+// Start to access frame args 
+void frame_args_begin(frame_t *frame);
+
+// Finish accessing frame args
+void frame_args_end(frame_t *frame);
+
+// return the unescaped frame bytes. the caller needs to free the buffer 
+uint8_t *frame_encode_frame_bytes(frame_t *frame, uint8_t *len);
+
+// return the escaped network bytes including SFLAG & EFLAG. the caller needs to free the buffer 
+uint8_t *frame_encode_network_bytes(frame_t *frame, uint8_t *len);
+
+// Frame arg getters
+int frame_get_arg_uint8(frame_t *frame, uint8_t *result);
+int frame_get_arg_uint16(frame_t *frame, uint16_t *result);
+int frame_get_arg_uint32(frame_t *frame, uint32_t *result);
+
+// Frame arg setters 
+int frame_put_arg_uint8(frame_t *frame, uint8_t value);
+int frame_put_arg_uint16(frame_t *frame, uint16_t value);
+int frame_put_arg_uint32(frame_t *frame, uint32_t value);
+
+
+// ================ FRAMEBUF ==================
 
 // Reset the head and tail of the framebuf to 0
 void framebuf_reset();
@@ -120,6 +161,12 @@ int framebuf_frame_size();
 
 // Deframe the bytes of a single frame from the buffer 
 int framebuf_deframe(uint8_t *data, size_t len);
+
+
+// Debug the frame buffer 
+void framebuf_debug(void);
+
+// ================ FRAMELST ==================
 
 // Create a framelst
 framelst_t *framelst_create();

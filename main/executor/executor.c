@@ -1,6 +1,8 @@
 #include "executor.h"
 #include "frame.h"
 #include "network.h"
+#include "command.h"
+#include "bytes.h"
 
 #include <string.h>
 
@@ -22,11 +24,55 @@
 #include "../kv/kv.h"
 #include "../event/event.h"
 #include "../console/log.h"
+#include "../wifi/wifi.h"
 
 
 #define RX_BUF_SIZE 256
 static int running = 0;
 
+static QueueHandle_t txqueue;
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+static uint32_t generate_mote_id(void) {
+  esp_err_t err;
+  uint8_t address;
+  uint8_t result[4];
+  uint32_t rand = esp_random();
+
+  result[0] = rand >> 24;
+  result[1] = rand >> 16;
+  result[2] = rand >> 8;
+
+  err = esp_base_mac_addr_get(&address);
+  if (err != ESP_OK) {
+    result[3] = rand;
+  } else {
+    result[3] = address;
+  }
+  
+  return bytes_uint32_decode(result);
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+static uint32_t get_mote_id(void) {
+  esp_err_t err;
+  uint32_t value;
+
+  err = get_id(&value);
+  if (err != ESP_OK) {
+    value = generate_mote_id();
+    err = set_id(value);
+    if (err != ESP_OK) {
+      log_error("Executor failed to generate the mote id.");
+      return 0;
+    }
+  }
+  return value ;
+}
 
 
 /* ------------------------------------------------------------------------
@@ -48,111 +94,84 @@ void finalize_executor(void) {
  * The exector main task 
  * --------------------------------------------------------------------- */
 void executor_task( void *pvParameters ) {
-  uint8_t rx_buf[ RX_BUF_SIZE];
-  int nbytes;
-  int sock = -1;
-  EventBits_t flag;
-  int ip_ok;
-  
-  // initialize some vars 
-  framebuf_reset();
+  frame_t *rxframe = 0x0;
+  frame_t *txframe = 0x0;
 
+  uint32_t id = 5000;
+ 
 
+  // Create the transmission queue -- max 10 frames 
+  txqueue =xQueueCreate(10, sizeof(frame_t*));
+
+    
   // Wait to get an IP
   const TickType_t xTicksToWait = 10000 / portTICK_PERIOD_MS; 
   xEventGroupWaitBits(app_event_group,WIFI_GOT_IP,0,0,xTicksToWait);
 
+  // After the wifi is up get the mote id. If it does not exist
+  // it will be generated with the use of esp_random() which needs
+  // the wifi to be running
+
+  uint32_t moteid = get_mote_id();
+  log_info("Mote ID = %d\n", moteid);
   
 
+  // push some frames onto the tx queue 
+  frame_t *initframe  =  cmd_ident(moteid); //frame_create(10);
+  xQueueSend(txqueue, &initframe,10);
+  
+
+  
   // start main loop
   while (running) {
-    // do we have an IP 
-    flag = xEventGroupGetBits(app_event_group);
-    ip_ok = (flag & WIFI_GOT_IP);
 
-    // if we have an IP and no socket create a socket 
-    if (ip_ok && (sock < 0)) {
-      sock =  socket_create();
-      if (sock >= 0) {
-        if(!socket_connect(sock)) {
-          socket_destroy();
-          sock = -1;
-        }
+    if(wifi_valid()) {
+      if (!socket_valid()) {
+        socket_disconnect();
+        socket_create();
+        socket_connect();
+        framebuf_reset();
+        // if we have just reconnected we need to ident
+        frame_t *ident = cmd_ident(moteid);
+        xQueueSend(txqueue, &ident, 10);
+
+        // if we have just booted we need to set time 
       }
-    }
+    
+      // Read a frame 
+      if (socket_valid()) {
+        rxframe = socket_read_frame();
+        if (rxframe != 0x0) {
+          frame_free(rxframe);
+        }     
+      }
+      
+      
+      // Log 
 
-    // if we have a socket and ip try read from the server ... 
-    if (ip_ok && (sock >= 0)) {
-
-
-      // ---------- READ ----------
-      nbytes = read (sock, rx_buf,  RX_BUF_SIZE - 1);
-      if (nbytes < 0){
-        log_std_error(errno, "Networking read error.");
-        if (errno != EAGAIN) {
-          socket_disconnect(sock);
-          socket_destroy();
-          sock = -1;
-        }            
-      } else if (nbytes == 0) {
-        log_std_error(errno, "Networking is disconnected.");
-        socket_disconnect(sock);
-        socket_destroy();
-        sock = -1;
-      } else {
-
-        // test print the data that we read
-        log_info_uint8_array(rx_buf,nbytes,"Socket read");
-        
-        // write to protobuf 
-        framebuf_write(rx_buf,nbytes);
-
-        // check for a frame 
-        int fsize = framebuf_frame_size();
-        
-        if (fsize <  RX_BUF_SIZE) {
-          if (fsize > 0) {
-
-
-            //deframe
-            framebuf_deframe(rx_buf, fsize);
-
-            frame_t *frame = frame_from_bytes(rx_buf, fsize);
-            frame_print(frame, rx_buf, fsize);
-            frame_free(frame);
-            
-          } 
+      // Write a frame
+      if( xQueueReceive(txqueue, &txframe, 100)) {        
+        if(txframe != 0x0) {
+          // send the frame to the server
+          if(!socket_write_frame(txframe)) {
+            log_error("Executor failed to write a frame.");
+          }
+          // delete the frame
+          frame_free(txframe);
         } else {
-          printf("Out of Memory Error. Cannot deframe.\n");
+          printf("tx frame was 0x0\n");
         }
-        
+      } else {
+        printf("tx queue is empty.\n");
       }
-    }   
 
+       
 
+      // Flush log file 
 
-    // ---------- WRITE ----------
-    
-    // Do we have any client instructions in the queue
-    if (ip_ok && (sock >=0)) {
-      // send client instructions to server 
     }
-    
-    // do we have and log events
-    if (ip_ok && (sock >=0)) {
-      // log to server 
-    } else {
-      // log to file 
-    }
-  
 
-    // flush any log text file
-    if (ip_ok && (sock >=0)) {
-      // if we have a log file locally flush it to the server ...
-    }
-   
-
-    vTaskDelay(3000 / portTICK_PERIOD_MS);
+    vTaskDelay(6000 / portTICK_PERIOD_MS);
   }
   
   vTaskDelete(NULL);
