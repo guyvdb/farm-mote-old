@@ -1,6 +1,6 @@
 #include "bytes.h"
 
-
+#include <string.h>
 
 
 
@@ -28,6 +28,24 @@ uint32_t bytes_uint32_decode(uint8_t *data) {
 }
 
 
+/* ------------------------------------------------------------------------
+ * This allocates memory for result. The caller must free the memory.
+ * The string is encoded into the payload as a uint8 len + len bytes that 
+ * make up the string excluding any null termination. So we alloc len+1 
+ * bytes, copy the data and null terminate the string.
+ * --------------------------------------------------------------------- */
+char *bytes_string_decode(uint8_t *data) {
+  uint8_t *ptr = data;
+  uint8_t len = bytes_uint8_decode(data);
+  ptr++;
+  
+  char *result = malloc(((int)len)+1);
+  for(int i=0; i<(int)len; i++) {
+    result[i] = ptr[i];
+  }
+  result[(int)len] = 0x0;
+  return result;
+}
 
 
 /* ------------------------------------------------------------------------
@@ -59,7 +77,21 @@ void bytes_uint32_encode(uint32_t value, uint8_t *result) {
 }
 
 
+/* ------------------------------------------------------------------------
+ * Strings are encoded as a uint8 len + len bytes of characters. Result must 
+ * have enought space to accomodate this.
+ * --------------------------------------------------------------------- */
+void bytes_string_encode(const char* value, uint8_t *result) {
+  uint8_t *ptr = result;
+  uint8_t len = (uint8_t)strlen(value);
 
+  bytes_uint8_encode(len, ptr);
+  ptr++;
 
+  for(int i=0;i<(int)len;i++) {
+    ptr[i] = value[i];
+  }
+
+}
 
 

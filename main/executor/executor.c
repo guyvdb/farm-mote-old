@@ -21,6 +21,8 @@
 #include <esp_log.h>
 #include <esp_err.h>
 
+#include <sys/time.h>
+
 #include "../kv/kv.h"
 #include "../event/event.h"
 #include "../console/log.h"
@@ -31,6 +33,7 @@
 static int running = 0;
 
 static QueueHandle_t txqueue;
+static int clocksetflag = 0;
 
 /* ------------------------------------------------------------------------
  * 
@@ -91,6 +94,18 @@ void finalize_executor(void) {
 }
 
 /* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+static uint32_t get_unix_time() {
+
+   struct timeval tv;
+   gettimeofday(&tv, NULL);
+
+   return tv.tv_sec;
+
+}
+
+/* ------------------------------------------------------------------------
  * The exector main task 
  * --------------------------------------------------------------------- */
 void executor_task( void *pvParameters ) {
@@ -117,8 +132,8 @@ void executor_task( void *pvParameters ) {
   
 
   // push some frames onto the tx queue 
-  frame_t *initframe  =  cmd_ident(moteid); //frame_create(10);
-  xQueueSend(txqueue, &initframe,10);
+  //frame_t *initframe  =  cmd_ident(moteid); //frame_create(10);
+  //xQueueSend(txqueue, &initframe,10);
   
 
   
@@ -126,50 +141,66 @@ void executor_task( void *pvParameters ) {
   while (running) {
 
     if(wifi_valid()) {
+      
       if (!socket_valid()) {
+        framebuf_reset(); 
         socket_disconnect();
         socket_create();
-        socket_connect();
-        framebuf_reset();
-        // if we have just reconnected we need to ident
-        frame_t *ident = cmd_ident(moteid);
-        xQueueSend(txqueue, &ident, 10);
-
-        // if we have just booted we need to set time 
+        if(socket_connect()) {        
+          // new connection to server. send ident 
+          frame_t *ident = cmd_ident(moteid);
+          xQueueSend(txqueue, &ident, 10);
+        }
       }
-    
+
+      // do we need to set the system clock
+      if(clocksetflag == 0) {
+        frame_t *time = cmd_time_request();
+        xQueueSend(txqueue, &time, 10);  
+      }
+      
       // Read a frame 
       if (socket_valid()) {
         rxframe = socket_read_frame();
         if (rxframe != 0x0) {
+
+          printf("RX FRAME %d\n", rxframe->cmd);
+
+          switch(rxframe->cmd) {
+          case TIMESET:
+            printf("CMD TIMESET\n");
+            if(cmd_time_set(rxframe)) {
+              clocksetflag = 1;
+              printf("clocksetflag=%d\n", clocksetflag);
+            }            
+            break;
+          default:
+            printf("CMD %d UNKNOWN\n",rxframe->cmd);
+            break;
+          }
           frame_free(rxframe);
         }     
       }
       
-      
-      // Log 
-
       // Write a frame
       if( xQueueReceive(txqueue, &txframe, 100)) {        
         if(txframe != 0x0) {
-          // send the frame to the server
-          if(!socket_write_frame(txframe)) {
-            log_error("Executor failed to write a frame.");
-          }
+          if(socket_valid()) {
+            // send the frame to the server
+            if(!socket_write_frame(txframe)) {
+              log_error("Executor failed to write a frame.");
+            } else {
+              printf("TX FRAME %d\n", txframe->cmd);
+            }
+          } else {
+            // socket is not connected ... need to log frame to disk 
+          }          
           // delete the frame
           frame_free(txframe);
-        } else {
-          printf("tx frame was 0x0\n");
         }
-      } else {
-        printf("tx queue is empty.\n");
-      }
-
-       
-
-      // Flush log file 
-
+      }        
     }
+
 
     vTaskDelay(6000 / portTICK_PERIOD_MS);
   }

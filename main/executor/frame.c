@@ -1,6 +1,6 @@
 #include "frame.h"
 #include "bytes.h"
-
+#include "../console/log.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -41,14 +41,12 @@ void frame_args_end(frame_t *frame) {
  * Allocate a frame structure. Also allocate space for the payload, if any.
  * The caller must free the memory.
  * --------------------------------------------------------------------- */
-frame_t *frame_create(uint8_t cmd, uint8_t payloadlen) {
+frame_t *frame_create(uint8_t cmd, int payloadlen) {
   struct timeval tv;
   gettimeofday(&tv, NULL);
   
-  
-  
   frame_t *frame = malloc(sizeof(frame_t));
-  frame->len = payloadlen;
+  frame->len = (uint8_t)payloadlen;
   frame->next = 0x0;
   frame->prev = 0x0;
   frame->argptr = 0x0;
@@ -59,11 +57,9 @@ frame_t *frame_create(uint8_t cmd, uint8_t payloadlen) {
   frame->tcount = 1;
   frame->transmitted = (int32_t)tv.tv_sec;
 
-  
-  if (payloadlen > 0) {
-    int plen = (int)payloadlen;
-    frame->payload = malloc(plen);
-    memset((void*)frame->payload,0x0,plen);
+
+  if(frame->len > 0) {
+    frame->payload = (uint8_t*)malloc((int)frame->len);
   } else {
     frame->payload = 0x0;
   }
@@ -132,15 +128,15 @@ frame_t *frame_from_bytes(uint8_t *data, size_t len) {
 /* ------------------------------------------------------------------------
  * return the unescaped frame bytes. the caller needs to free the buffer 
  * --------------------------------------------------------------------- */
-uint8_t *frame_encode_frame_bytes(frame_t *frame, uint8_t *len) {
+uint8_t *frame_encode_frame_bytes(frame_t *frame, int *len) {
+
   // calculate how many frame byte we are going to use
-  int flen = FRAMELENWITHOUTPAYLOAD + (int)frame->len;
+  int flen = (int)FRAMELENWITHOUTPAYLOAD + (int)frame->len;
   uint8_t *buf = (uint8_t*)malloc(flen);
   uint8_t *ptr = buf;
-
+  
   *len = flen;
   
-
   bytes_uint8_encode(frame->version, ptr); ptr += 1;
   bytes_uint16_encode(frame->id, ptr); ptr += 2;
   bytes_uint8_encode(frame->tcount, ptr); ptr += 1;
@@ -149,12 +145,10 @@ uint8_t *frame_encode_frame_bytes(frame_t *frame, uint8_t *len) {
   bytes_uint8_encode(frame->cmd, ptr); ptr += 1;
   bytes_uint8_encode(frame->len, ptr); ptr += 1;
 
-  for(int i=0; i< frame->len; i++) {
+  for(int i=0; i< (int)frame->len; i++) {
     ptr[i] = frame->payload[i];
   }
 
-  
-  
   return buf;
 }
 
@@ -162,20 +156,22 @@ uint8_t *frame_encode_frame_bytes(frame_t *frame, uint8_t *len) {
  * return the escaped network bytes including SFLAG & EFLAG. the caller 
  * needs to free the buffer 
  * --------------------------------------------------------------------- */
-uint8_t *frame_encode_network_bytes(frame_t *frame, uint8_t *len) {
+uint8_t *frame_encode_network_bytes(frame_t *frame, int *len) {
   uint8_t *fbuf;
-  uint8_t fbuflen;
+  int fbuflen;
   uint8_t *nbuf;
-  uint8_t nbuflen;
+  int nbuflen;
 
   int srcptr = 0;
   int destptr = 0;
 
-  // alloc the frame bytes
+  // alloc/get the frame bytes
   fbuf = frame_encode_frame_bytes(frame, &fbuflen);
 
   // count the number of control characters
-  nbuflen = fbuflen + 2; // 2 for SFLAG & EFLAG  
+  nbuflen = fbuflen + 2; // +2 for SFLAG & EFLAG  
+
+  // count the number of control characters in the frame bytes 
   for(int i=0;i<fbuflen;i++) {
     if( (fbuf[i] == SFLAG) || (fbuf[i] == EFLAG) || (fbuf[i] == ESCAPE) ){
       nbuflen++;
@@ -183,10 +179,16 @@ uint8_t *frame_encode_network_bytes(frame_t *frame, uint8_t *len) {
   }
 
   // alloc the network bytes
-  nbuf = (uint8_t*)malloc((int)nbuflen);
+  nbuf = (uint8_t*)malloc(nbuflen);
 
+  // write the SFLAG 
+  nbuf[destptr] = SFLAG; destptr++;
+  
   // copy the network bytes
   for(int i=0;i<fbuflen;i++) {
+
+    // if the char is a control character add an escape before the data
+    // else just copy the byte across
     if( (fbuf[i] == SFLAG) || (fbuf[i] == EFLAG) || (fbuf[i] == ESCAPE) ){
       nbuf[destptr] = ESCAPE;
       destptr++;
@@ -200,12 +202,16 @@ uint8_t *frame_encode_network_bytes(frame_t *frame, uint8_t *len) {
     }
   }
 
-  // free the frame bytes
+  // write the EFLAG
+  nbuf[destptr] = EFLAG; destptr++;
+
+  // free the frame bytes that we allocated 
   free(fbuf);
 
-  // set the result length
+  // set the result length of the network bytes buffer 
   *len = nbuflen;
 
+  // return the network bytes
   return nbuf;
 }
 
@@ -225,12 +231,75 @@ void frame_free(frame_t *frame) {
 
 
 /* ------------------------------------------------------------------------
- * Print this frame 
+ * If we convert this int to a char * how big does the buffer need to be 
  * --------------------------------------------------------------------- */
-void frame_print(frame_t *frame, uint8_t *bytes, size_t size) {
+static int itoa_buf_size(int value) {
+  // 0 - 9
+  // 10 -- 99
+  // 100 - 999
+  // 1000 - 9999
+  // 10000 - 99999
+  
+}
+
+/*
+ssize_t bufsz = snprintf(NULL, 0, "{data:%d}",12312);
+char* buf = malloc(bufsz + 1);
+snprintf(buf, bufsz + 1, "{data:%d}",12312);
+
+...
+
+free(buf);
+*/
+
+/* ------------------------------------------------------------------------
+ * Create a string representation of this frame 
+ * --------------------------------------------------------------------- */
+char *frame_to_string(frame_t *frame) {
   int len = (int)frame->len;
+  
+  /*
+type Frame struct {
+	Version uint8
+	Id uint16
+	TCount uint8
+	Transmitted int32
+	RefId uint16
+	Cmd uint8
+	Len uint8
+	Payload []byte
+	argPtr uint8
+}
 
 
+IDENT {v: 1, id: 10, tc: 1, time: 1591338726, ref: 0, cmd: 4, len: 4, args: [0 0 0 1] }
+
+ */
+                                           
+  size_t slen = snprintf(0x0,0,"&{%d %d %d %d %d %d %d [");
+  size_t elen = snprintf(0x0,0,"] %d}");
+  size_t plen = 0;
+
+  for (int i=0;i<len;i++) {
+    plen += snprintf(0x0,0,"%d ", frame->payload[i]);
+  }
+  
+
+  char *result = malloc(slen+elen+plen);
+
+
+  
+
+  
+  
+  
+  
+
+  printf("&{%d %d %d %d %d %d %d [");
+  printf);
+
+
+  
   printf("\n-- FRAME --\n");
 
   printf("version: %d\n", frame->version);
@@ -349,8 +418,6 @@ int frame_put_arg_uint16(frame_t *frame, uint16_t value){
 int frame_put_arg_uint32(frame_t *frame, uint32_t value){
   uint8_t *ptr = frame->payload;
   ptr += frame->argptr;
-
-  printf("put arg uint32: argptr = %d, len = %d, newval = %d\n",frame->argptr, frame->len, 4 + frame->argptr);
   
   if(4 + frame->argptr <= frame->len) {
     bytes_uint32_encode(value, ptr);

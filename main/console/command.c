@@ -26,13 +26,6 @@ cmd_p last_command;
 // ----------------------- START CONSOLE COMMANDS -------------------------
 
 
-/*
-void logging_on_off(int value);
-void prompt_on_off(int value);
-*/
-
-
-
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
@@ -89,17 +82,67 @@ static void cmd_reboot(char *argv[], int argc){
  * --------------------------------------------------------------------- */
 static void cmd_id(char *argv[], int argc) {
   esp_err_t err;
-  uint8_t address;
-  err = esp_base_mac_addr_get(&address);
-  printf("id %d\n", address);
+  uint32_t id;
+  
+  if (argc == 1) {
+    err = get_id(&id);
+    if (err == ESP_OK) {
+      printf("id %d\n", id);
+    } else {
+      printf("error %d  %s\n", err, esp_err_to_name(err));
+    }    
+  } else if (argc == 2) {
+    id = (uint32_t)atoi(argv[1]);
+    err = set_id(id);
+    if (err == ESP_OK) {
+      printf("id *set*\n");
+    } else {
+      printf("error %d  %s\n", err, esp_err_to_name(err));
+    }        
+      
+  } else {
+    log_error("Usage: id <id>.");
+  }
 }
 
 
+
+
+/*
+
+esp_err_t get_id(uint32_t *value);
+esp_err_t set_id(uint32_t value);
+
+*/
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 static void cmd_mem(char *argv[], int argc) {
   uint32_t fmem = esp_get_free_heap_size();
   printf("mem free %d\n", fmem);    
 }
 
+
+
+
+/*
+time_t now;
+char strftime_buf[64];
+struct tm timeinfo;
+
+time(&now);
+// Set timezone to China Standard Time
+setenv("TZ", "CST-8", 1);
+tzset();
+
+// Set timezone to South African Standard Time +2
+setenv("TZ","SAST",2); 
+
+localtime_r(&now, &timeinfo);
+strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
+ESP_LOGI(TAG, "The current date/time in Shanghai is: %s", strftime_buf);
+*/
 
 /* ------------------------------------------------------------------------
  * 
@@ -107,9 +150,28 @@ static void cmd_mem(char *argv[], int argc) {
 static void cmd_time(char *argv[], int argc) {
 
   if (argc == 1) {
+    time_t now;
+    char buffer[64];
+    struct tm timeinfo;
+
+    setenv("TZ","SAST",2);
+    tzset();
+
+    localtime_r(&now, &timeinfo);
+    strftime(buffer, sizeof(buffer),"%c",&timeinfo);
+
+    printf("%s\n", buffer);
+    
+
+
+
+
+
+    /*
   
     // Get Time
     struct timeval tv;
+    struct tm timeinfo;
     time_t t;
     struct tm *ts;
     char buffer[80];
@@ -117,15 +179,24 @@ static void cmd_time(char *argv[], int argc) {
     gettimeofday(&tv, NULL);
     t = tv.tv_sec;
 
-    ts = localtime(&t);
+
+    setenv("TZ","SAST",2);
+    tzset();
+    
+    ts = localtime_r(&t, &timeinfo);
+
+    strftime(buffer, sizeof(buffer),"%c",&timeinfo);
 
 
     // "%Y-%m-%dT%H:%M:%S"
-    // "%a %Y-%m-%d %H:%M:%S %Z"
-      
-    strftime(buffer, sizeof(buffer),"%Y-%m-%dT%H:%M:%S" , ts);
-    printf("time %s\n", buffer);
-  } else {
+    // "%a %Y-%m-%d %H:%M:%S %Z"  
+    //strftime(buffer, sizeof(buffer),"%Y-%m-%dT%H:%M:%S" , ts);
+    printf("%s\n", buffer);
+
+    */
+
+    
+  } else if(argc == 2) {
     // Set Time 
 
      struct tm result;
@@ -152,7 +223,14 @@ static void cmd_time(char *argv[], int argc) {
 
     }
 
+  } else {
+    log_error("Usage: time <RFC3339 time>.");
   }
+
+
+
+
+  
 }
 
 

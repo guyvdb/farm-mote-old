@@ -107,7 +107,7 @@ typedef void (frame_iterate)(char *argv[], int argc);
 uint16_t frame_next_id(void);
 
 // Create a frame. Memory is allocated for the frame and len bytes is allocated for the payload
-frame_t *frame_create(uint8_t cmd, uint8_t payloadlen);
+frame_t *frame_create(uint8_t cmd, int payloadlen);
 
 // Create a frame from a set of bytes that includes the SFRAME and EFRAME flags that are not part
 // of the frame. Memory is allocated via frame_create().
@@ -117,7 +117,7 @@ frame_t *frame_from_bytes(uint8_t *data, size_t len);
 void frame_free(frame_t *frame);
 
 // Print a decoded frame 
-void frame_print(frame_t *frame, uint8_t *bytes, size_t size);
+void frame_print(frame_t *frame);
 
 // Start to access frame args 
 void frame_args_begin(frame_t *frame);
@@ -126,20 +126,22 @@ void frame_args_begin(frame_t *frame);
 void frame_args_end(frame_t *frame);
 
 // return the unescaped frame bytes. the caller needs to free the buffer 
-uint8_t *frame_encode_frame_bytes(frame_t *frame, uint8_t *len);
+uint8_t *frame_encode_frame_bytes(frame_t *frame, int *len);
 
 // return the escaped network bytes including SFLAG & EFLAG. the caller needs to free the buffer 
-uint8_t *frame_encode_network_bytes(frame_t *frame, uint8_t *len);
+uint8_t *frame_encode_network_bytes(frame_t *frame, int *len);
 
 // Frame arg getters
 int frame_get_arg_uint8(frame_t *frame, uint8_t *result);
 int frame_get_arg_uint16(frame_t *frame, uint16_t *result);
 int frame_get_arg_uint32(frame_t *frame, uint32_t *result);
+char *frame_get_arg_string(frame_t *frame);
 
 // Frame arg setters 
 int frame_put_arg_uint8(frame_t *frame, uint8_t value);
 int frame_put_arg_uint16(frame_t *frame, uint16_t value);
 int frame_put_arg_uint32(frame_t *frame, uint32_t value);
+int frame_put_arg_string(frame_t  *frame, const char *value);
 
 
 // ================ FRAMEBUF ==================

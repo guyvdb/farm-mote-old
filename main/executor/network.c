@@ -90,7 +90,6 @@ int socket_create() {
  * --------------------------------------------------------------------- */
 int socket_connect() {
   if(connectedflag == 0) {
-    printf("connected flag is 0. will connect.\n");
     int cerr = connect(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
     if (cerr != 0) {
       log_std_error(errno,"Networking failed to connect.");
@@ -101,7 +100,6 @@ int socket_connect() {
       return 1;
     }
   } else {
-    printf("connected flag is 1. doing nothing.\n");
     return 1;
   }
 }
@@ -164,8 +162,8 @@ frame_t *socket_read_frame() {
   int fsize;
   int nbytes = read(sock, rxbuf, RXBUFLEN - 1);
   if (nbytes < 0) {
-    log_std_error(errno,"Networing read error.");
     if (errno != EAGAIN) {
+      log_std_error(errno,"Networing read error.");
       socket_disconnect();
     }
     return 0x0;  
@@ -174,7 +172,7 @@ frame_t *socket_read_frame() {
     socket_disconnect();
     return 0x0;
   } else {
-    log_info_uint8_array(rxbuf, nbytes, "Socket read");
+    //log_info_uint8_array(rxbuf, nbytes, "Socket read");
     framebuf_write(rxbuf, nbytes);
     fsize = framebuf_frame_size();
     if(fsize > 0) {
@@ -184,9 +182,19 @@ frame_t *socket_read_frame() {
         framebuf_debug();
         return 0x0;
       }
-      // allocate a new frame & return it 
+      // allocate a new frame & return it
+
+      printf("RX Bytes: [");
+      for(int i=0;i<fsize;i++) {
+        if (i + 1 == fsize) {
+          printf("%d",rxbuf[i]);
+        } else {
+          printf("%d ",rxbuf[i]);
+        }
+      }
+      printf("]\n");
+      
       frame_t *frame = frame_from_bytes(rxbuf, fsize);
-      frame_print(frame, rxbuf, fsize);
       return frame;      
     } else {
       return 0x0;
@@ -199,22 +207,13 @@ frame_t *socket_read_frame() {
  * --------------------------------------------------------------------- */
 int socket_write_frame(frame_t *frame) {
   uint8_t *data;
-  uint8_t len;
-
+  int len;
   data = frame_encode_network_bytes(frame, &len);
+  int nbytes = write(sock,data, len);
 
-
-  // print the network bytes
-  log_info_uint8_array(data, (size_t)len,"Network Bytes To Send:");
+  // TODO ensure that all bytes where written
   
-
+  
   free(data);
-  
-
-  // we need to turn the frame into bytes that are escaped
-
-  
-
-  
-  return 0;
+  return 1;
 }
