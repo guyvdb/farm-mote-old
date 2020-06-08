@@ -4,5 +4,5 @@
 
 
 void main(char **argv, int argc) {
-  printf("Main Test Harness\n")
+  printf("Main Test Harness\n");
 }
