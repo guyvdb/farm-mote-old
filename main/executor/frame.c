@@ -233,14 +233,14 @@ void frame_free(frame_t *frame) {
 /* ------------------------------------------------------------------------
  * If we convert this int to a char * how big does the buffer need to be 
  * --------------------------------------------------------------------- */
-static int itoa_buf_size(int value) {
+/*static int itoa_buf_size(int value) {
   // 0 - 9
   // 10 -- 99
   // 100 - 999
   // 1000 - 9999
   // 10000 - 99999
   
-}
+  }*/
 
 /*
 ssize_t bufsz = snprintf(NULL, 0, "{data:%d}",12312);
@@ -255,26 +255,10 @@ free(buf);
 /* ------------------------------------------------------------------------
  * Create a string representation of this frame 
  * --------------------------------------------------------------------- */
+/*
 char *frame_to_string(frame_t *frame) {
   int len = (int)frame->len;
   
-  /*
-type Frame struct {
-	Version uint8
-	Id uint16
-	TCount uint8
-	Transmitted int32
-	RefId uint16
-	Cmd uint8
-	Len uint8
-	Payload []byte
-	argPtr uint8
-}
-
-
-IDENT {v: 1, id: 10, tc: 1, time: 1591338726, ref: 0, cmd: 4, len: 4, args: [0 0 0 1] }
-
- */
                                            
   size_t slen = snprintf(0x0,0,"&{%d %d %d %d %d %d %d [");
   size_t elen = snprintf(0x0,0,"] %d}");
@@ -334,7 +318,7 @@ IDENT {v: 1, id: 10, tc: 1, time: 1591338726, ref: 0, cmd: 4, len: 4, args: [0 0
   
   printf("-- END FRAME --\n\n");
 }
-
+*/
 
 /* ------------------------------------------------------------------------
  * 

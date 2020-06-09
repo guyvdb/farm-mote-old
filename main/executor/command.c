@@ -86,4 +86,5 @@ int cmd_time_set(frame_t *frame) {
  * Set the timezone of the system. Return 1 on success else 0.
  * --------------------------------------------------------------------- */
 int cmd_time_zone_set(frame_t *frame) {
+  return 0;
 }
