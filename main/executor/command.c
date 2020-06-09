@@ -5,16 +5,24 @@
 #include <sys/time.h>
 #include <esp_err.h>
 
+static int32_t get_timestamp() {
+  return 10;
+}
+
 /* ------------------------------------------------------------------------
  * Generate a frame with the IDENT command. Push 4 bytes (uint32_t) onto 
  * the payload which represents the ID of this mote.
  * --------------------------------------------------------------------- */
 frame_t *cmd_ident(uint32_t id){
-  frame_t *frame = frame_create(IDENT, 4); // 4 byte long payload
+
+
+  // frame_t *frame_create(uint8_t cmd, uint8_t ref, int32_t timestamp, size_t len);
+  
+  frame_t *frame = frame_create(IDENT,0, get_timestamp(), 4); // 4 byte long payload
   frame->cmd = IDENT;
 
   frame_args_begin(frame);
-  if (!frame_put_arg_uint32(frame,id)) {
+  if (!frame_args_put_uint32(frame,id)) {
     log_error("Failed to put mote id into frame arguments.");
   }
   frame_args_end(frame);
@@ -27,7 +35,7 @@ frame_t *cmd_ident(uint32_t id){
  * Generate a frame with the TIMEREQ command and no payload.
  * --------------------------------------------------------------------- */
 frame_t *cmd_time_request() {
-  frame_t *frame = frame_create(TIMEREQ, 0); // no payload
+  frame_t *frame = frame_create(TIMEREQ, 0, get_timestamp(), 0); // no payload
   frame->cmd = TIMEREQ;
   return frame;
 }
@@ -62,12 +70,21 @@ int cmd_time_set(frame_t *frame) {
   struct timeval t;
   uint32_t time;
 
+
+
   
-  if(!frame_get_arg_uint32(frame, &time)) {
+
+  
+  
+  frame_args_begin(frame);
+  if(!frame_args_get_uint32(frame, &time)) {
     log_error("Command TIMESET does not have a 4 byte payload.");
+    frame_args_end(frame);
     return 0;
   }
+  frame_args_end(frame);
 
+  
   t.tv_sec = (int32_t)time;
   t.tv_usec = 0;
   

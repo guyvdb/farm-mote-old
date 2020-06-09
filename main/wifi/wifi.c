@@ -32,6 +32,12 @@ static char wifi_password[64];
 static int retry_count;
 static int retry_delay;
 
+
+static void wifi_reconnect(void) {
+  // move wait and reconnect code from wifi_event_handler
+  // to this function
+}
+
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
@@ -57,7 +63,6 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
       xEventGroupClearBits(app_event_group, WIFI_CONNECTED);
       xEventGroupClearBits(app_event_group,  WIFI_GOT_IP);
       log_info("Wifi disconnected. event = STA_DISCONNECTE");
-
 
       retry_count++;
       int seconds = retry_delay / 1000;

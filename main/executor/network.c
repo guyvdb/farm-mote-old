@@ -1,4 +1,5 @@
 #include "network.h"
+#include "framebuf.h"
 #include <lwip/sockets.h>
 #include <esp_err.h>
 #include "../kv/kv.h"
@@ -6,7 +7,7 @@
 
 #define MAXCONNDELAY 1000 * 30             // 30 seconds -- in milliseconds
 #define READTIMEOUT  1000 * 10             // 10 milliseconds -- in microseconds
-#define RXBUFLEN  MAXESCAPEDFRAMELEN
+#define RXBUFLEN  512
 
 static int createdflag = 0;                // have we created a socket
 static int connectedflag = 0;              // have we connected the socket
@@ -75,6 +76,8 @@ int socket_create() {
 
     // Success 
     createdflag = 1;
+
+    printf("createdflag set to 1. created new socket. sock=%d\n", sock);
     return sock;
     
   } else {
@@ -108,6 +111,7 @@ int socket_connect() {
  * disconnect the socket
  * --------------------------------------------------------------------- */
 void socket_disconnect() {
+  printf("disconnecting socket\n");
   shutdown(sock, 0);
   close(sock);
   connectedflag = 0;
@@ -159,12 +163,13 @@ int socket_write() {
  * frame is not available.
  * --------------------------------------------------------------------- */
 frame_t *socket_read_frame() {
-  int fsize;
   int nbytes = read(sock, rxbuf, RXBUFLEN - 1);
   if (nbytes < 0) {
     if (errno != EAGAIN) {
       log_std_error(errno,"Networing read error.");
       socket_disconnect();
+    } else if (errno == EAGAIN) {
+      printf("read timeout\n");
     }
     return 0x0;  
   } else if (nbytes == 0) {
@@ -172,48 +177,61 @@ frame_t *socket_read_frame() {
     socket_disconnect();
     return 0x0;
   } else {
-    //log_info_uint8_array(rxbuf, nbytes, "Socket read");
     framebuf_write(rxbuf, nbytes);
-    fsize = framebuf_frame_size();
-    if(fsize > 0) {
-      if (fsize > RXBUFLEN) {
-        // this should never happen 
-        log_error("Out of memory. RX buffer is %d bytes but frame is %d bytes", RXBUFLEN, fsize);
-        framebuf_debug();
-        return 0x0;
-      }
-      // allocate a new frame & return it
+    return framebuf_deframe();
+  }
+}
 
-      printf("RX Bytes: [");
-      for(int i=0;i<fsize;i++) {
-        if (i + 1 == fsize) {
-          printf("%d",rxbuf[i]);
-        } else {
-          printf("%d ",rxbuf[i]);
-        }
-      }
-      printf("]\n");
-      
-      frame_t *frame = frame_from_bytes(rxbuf, fsize);
-      return frame;      
+static void printbuf(uint8_t *data, size_t len) {
+  printf("[");
+  for(int i=0;i<len;i++){
+    if(i+1 == len) {
+      printf("%d",data[i]);
     } else {
-      return 0x0;
+      printf("%d ",data[i]);
     }
   }
+  printf("]\n");
 }
 
 /* ------------------------------------------------------------------------
  * write a frame onto the socket. 1 = success, 0 = error 
  * --------------------------------------------------------------------- */
 int socket_write_frame(frame_t *frame) {
-  uint8_t *data;
-  int len;
-  data = frame_encode_network_bytes(frame, &len);
-  int nbytes = write(sock,data, len);
+  uint8_t buf[256];
+  int encoded;
+  int len = frame_encoded_len(frame);
 
-  // TODO ensure that all bytes where written
+  printf("socket_write_frame: sock=%d\n", sock);
   
-  
-  free(data);
-  return 1;
+
+  if (len < sizeof(buf)) {
+    encoded = frame_encode(frame, buf,sizeof(buf));
+    if (encoded == 0) {
+      // failed to encode
+      return 0;
+    } else {
+
+      printf("encoded=%d\n",encoded);
+      printbuf(buf, encoded);
+
+      
+      int nbytes = write(sock, buf, encoded);
+
+      printf("nbytes=%d\n",nbytes);
+
+      if (nbytes == -1) {
+        log_std_error(errno, "nbytes=-1");
+        return 0;
+      } else if(nbytes != encoded) {
+        printf("TODO transmit unitl all data sent\n");
+        return 0;
+      } else {
+        return 1;
+      }
+    }
+  } else {
+    printf("Out of memory error\n");
+    return 0;
+  }
 }
