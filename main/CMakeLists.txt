@@ -5,8 +5,6 @@ idf_component_register(SRCS
   "console/command.c"
   "console/log.c"
   "executor/executor.c"
-  "executor/frame.c"
-  "executor/bytes.c"
   "executor/network.c"
   "executor/command.c"
   "relay/relay.c"
@@ -15,7 +13,6 @@ idf_component_register(SRCS
   "kv/kv.c"
   "event/event.c"
   "main.c"
-
-  
   INCLUDE_DIRS "."
+  REQUIRES frame
   )
