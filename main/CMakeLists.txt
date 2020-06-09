@@ -14,5 +14,5 @@ idf_component_register(SRCS
   "event/event.c"
   "main.c"
   INCLUDE_DIRS "."
-  REQUIRES frame
+  REQUIRES frame nvs_flash console fatfs
   )

@@ -1,4 +1,5 @@
 #include "network.h"
+#include "framebuf.h"
 #include <lwip/sockets.h>
 #include <esp_err.h>
 #include "../kv/kv.h"
@@ -6,7 +7,7 @@
 
 #define MAXCONNDELAY 1000 * 30             // 30 seconds -- in milliseconds
 #define READTIMEOUT  1000 * 10             // 10 milliseconds -- in microseconds
-#define RXBUFLEN  MAXESCAPEDFRAMELEN
+#define RXBUFLEN  512
 
 static int createdflag = 0;                // have we created a socket
 static int connectedflag = 0;              // have we connected the socket
@@ -159,7 +160,6 @@ int socket_write() {
  * frame is not available.
  * --------------------------------------------------------------------- */
 frame_t *socket_read_frame() {
-  int fsize;
   int nbytes = read(sock, rxbuf, RXBUFLEN - 1);
   if (nbytes < 0) {
     if (errno != EAGAIN) {
@@ -172,33 +172,8 @@ frame_t *socket_read_frame() {
     socket_disconnect();
     return 0x0;
   } else {
-    //log_info_uint8_array(rxbuf, nbytes, "Socket read");
     framebuf_write(rxbuf, nbytes);
-    fsize = framebuf_frame_size();
-    if(fsize > 0) {
-      if (fsize > RXBUFLEN) {
-        // this should never happen 
-        log_error("Out of memory. RX buffer is %d bytes but frame is %d bytes", RXBUFLEN, fsize);
-        framebuf_debug();
-        return 0x0;
-      }
-      // allocate a new frame & return it
-
-      printf("RX Bytes: [");
-      for(int i=0;i<fsize;i++) {
-        if (i + 1 == fsize) {
-          printf("%d",rxbuf[i]);
-        } else {
-          printf("%d ",rxbuf[i]);
-        }
-      }
-      printf("]\n");
-      
-      frame_t *frame = frame_from_bytes(rxbuf, fsize);
-      return frame;      
-    } else {
-      return 0x0;
-    }
+    return framebuf_deframe();
   }
 }
 
@@ -206,14 +181,34 @@ frame_t *socket_read_frame() {
  * write a frame onto the socket. 1 = success, 0 = error 
  * --------------------------------------------------------------------- */
 int socket_write_frame(frame_t *frame) {
-  uint8_t *data;
-  int len;
-  data = frame_encode_network_bytes(frame, &len);
-  int nbytes = write(sock,data, len);
+  uint8_t buf[256];
+  int encoded;
+  int len = frame_encoded_len(frame);
+  
 
-  // TODO ensure that all bytes where written
-  
-  
-  free(data);
-  return 1;
+  if (len < sizeof(buf)) {
+    encoded = frame_encode(frame, buf,sizeof(buf));
+    if (encoded == 0) {
+      // failed to encode
+      return 0;
+    } else {
+
+      printf("encoded=%d\n",encoded);
+
+      
+      int nbytes = write(socket, buf, encoded);
+
+      printf("nbytes=%d\n",nbytes);
+
+      if(nbytes != encoded) {
+        printf("TODO transmit unitl all data sent\n");
+        return 0;
+      } else {
+        return 1;
+      }
+    }
+  } else {
+    printf("Out of memory error\n");
+    return 0;
+  }
 }

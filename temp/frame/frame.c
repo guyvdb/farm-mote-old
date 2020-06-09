@@ -102,8 +102,7 @@ static int string_encode(const char *value, uint8_t *data, size_t len) {
     data[0] = (uint8_t)slen;
     for(int i=0;i<slen;i++) {
       data[i+1] = (uint8_t)value[i];
-    }
-    return 1;
+    }   
   } else {
     return 0;
   }
@@ -424,7 +423,6 @@ frame_t *frame_create(uint8_t cmd, uint8_t ref, int32_t timestamp, size_t len) {
 frame_t *frame_decode(uint8_t *data, size_t len) {
   int flen;
   uint8_t *ptr = data;
-  uint32_t timestamp;
 
   // alloc frame memory 
   frame_t *frame = malloc(sizeof(frame_t));
@@ -440,8 +438,7 @@ frame_t *frame_decode(uint8_t *data, size_t len) {
   uint8_decode(&frame->tcount, ptr, 1); ptr += 1;
 
   // transmitted timestamp
-  uint32_decode(&timestamp, ptr, 4); ptr += 4;
-  frame->timestamp = (uint32_t) timestamp;
+  uint32_decode(&frame->timestamp, ptr, 4); ptr += 4;
   
   // ref id
   uint16_decode(&frame->refid, ptr, 2); ptr += 2;
@@ -710,7 +707,6 @@ char *frame_to_string(frame_t *frame) {
                          frame->version,
                          frame->id,
                          frame->tcount,
-                         frame->timestamp,
                          frame->refid,
                          frame->cmd,
                          frame->len);

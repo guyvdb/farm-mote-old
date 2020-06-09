@@ -14,9 +14,9 @@ include_directories(
 )
 
 
-add_executable(frame_uint_test
+add_executable(frame_test
   contrib/unity/unity.c 
-  ../components/frame/uinttest.c
+  ../components/frame/test.c
   ../components/frame/frame.c
   ../components/frame/framebuf.c
 ) 

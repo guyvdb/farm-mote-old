@@ -1,8 +1,9 @@
 #include "executor.h"
 #include "frame.h"
+#include "framebuf.h"
 #include "network.h"
 #include "command.h"
-#include "bytes.h"
+
 
 #include <string.h>
 
@@ -54,8 +55,7 @@ static uint32_t generate_mote_id(void) {
   } else {
     result[3] = address;
   }
-  
-  return bytes_uint32_decode(result);
+  return (result[0] << 24) + (result[1] << 16) + (result[2] << 8) + result[3];
 }
 
 /* ------------------------------------------------------------------------
@@ -97,13 +97,12 @@ void finalize_executor(void) {
  * 
  * --------------------------------------------------------------------- */
 static uint32_t get_unix_time() {
-
    struct timeval tv;
    gettimeofday(&tv, NULL);
-
    return tv.tv_sec;
-
 }
+
+
 
 /* ------------------------------------------------------------------------
  * The exector main task 
@@ -129,13 +128,6 @@ void executor_task( void *pvParameters ) {
 
   uint32_t moteid = get_mote_id();
   log_info("Mote ID = %d\n", moteid);
-  
-
-  // push some frames onto the tx queue 
-  //frame_t *initframe  =  cmd_ident(moteid); //frame_create(10);
-  //xQueueSend(txqueue, &initframe,10);
-  
-
   
   // start main loop
   while (running) {
