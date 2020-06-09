@@ -76,6 +76,8 @@ int socket_create() {
 
     // Success 
     createdflag = 1;
+
+    printf("createdflag set to 1. created new socket. sock=%d\n", sock);
     return sock;
     
   } else {
@@ -109,6 +111,7 @@ int socket_connect() {
  * disconnect the socket
  * --------------------------------------------------------------------- */
 void socket_disconnect() {
+  printf("disconnecting socket\n");
   shutdown(sock, 0);
   close(sock);
   connectedflag = 0;
@@ -165,6 +168,8 @@ frame_t *socket_read_frame() {
     if (errno != EAGAIN) {
       log_std_error(errno,"Networing read error.");
       socket_disconnect();
+    } else if (errno == EAGAIN) {
+      printf("read timeout\n");
     }
     return 0x0;  
   } else if (nbytes == 0) {
@@ -177,6 +182,18 @@ frame_t *socket_read_frame() {
   }
 }
 
+static void printbuf(uint8_t *data, size_t len) {
+  printf("[");
+  for(int i=0;i<len;i++){
+    if(i+1 == len) {
+      printf("%d",data[i]);
+    } else {
+      printf("%d ",data[i]);
+    }
+  }
+  printf("]\n");
+}
+
 /* ------------------------------------------------------------------------
  * write a frame onto the socket. 1 = success, 0 = error 
  * --------------------------------------------------------------------- */
@@ -184,6 +201,8 @@ int socket_write_frame(frame_t *frame) {
   uint8_t buf[256];
   int encoded;
   int len = frame_encoded_len(frame);
+
+  printf("socket_write_frame: sock=%d\n", sock);
   
 
   if (len < sizeof(buf)) {
@@ -194,13 +213,17 @@ int socket_write_frame(frame_t *frame) {
     } else {
 
       printf("encoded=%d\n",encoded);
+      printbuf(buf, encoded);
 
       
-      int nbytes = write(socket, buf, encoded);
+      int nbytes = write(sock, buf, encoded);
 
       printf("nbytes=%d\n",nbytes);
 
-      if(nbytes != encoded) {
+      if (nbytes == -1) {
+        log_std_error(errno, "nbytes=-1");
+        return 0;
+      } else if(nbytes != encoded) {
         printf("TODO transmit unitl all data sent\n");
         return 0;
       } else {

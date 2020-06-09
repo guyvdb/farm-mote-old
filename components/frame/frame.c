@@ -817,7 +817,7 @@ int frame_args_get_uint32(frame_t *frame, uint32_t *result){
   uint8_t *ptr = frame->payload;
   ptr += frame->argptr;
   
-  if(4 + frame->argptr < frame->len){  // +4 for uint32
+  if(4 + frame->argptr <= frame->len){  // +4 for uint32
     if(uint32_decode(result, ptr,4)) {
       frame->argptr += 4;
       return 1;

@@ -70,12 +70,21 @@ int cmd_time_set(frame_t *frame) {
   struct timeval t;
   uint32_t time;
 
+
+
   
+
+  
+  
+  frame_args_begin(frame);
   if(!frame_args_get_uint32(frame, &time)) {
     log_error("Command TIMESET does not have a 4 byte payload.");
+    frame_args_end(frame);
     return 0;
   }
+  frame_args_end(frame);
 
+  
   t.tv_sec = (int32_t)time;
   t.tv_usec = 0;
   

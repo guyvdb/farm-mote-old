@@ -135,9 +135,13 @@ void executor_task( void *pvParameters ) {
     if(wifi_valid()) {
       
       if (!socket_valid()) {
+        printf("socket is not valid\n");
         framebuf_reset(); 
         socket_disconnect();
         socket_create();
+
+
+        
         if(socket_connect()) {        
           // new connection to server. send ident 
           frame_t *ident = cmd_ident(moteid);
