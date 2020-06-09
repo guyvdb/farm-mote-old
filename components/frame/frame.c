@@ -781,7 +781,7 @@ int frame_args_get_uint8(frame_t *frame, uint8_t *result){
   uint8_t *ptr = frame->payload; 
   ptr += frame->argptr;
   
-  if(1 + frame->argptr < frame->len){ // +1 for uint8
+  if(1 + frame->argptr <= frame->len){ // +1 for uint8
     if(uint8_decode(result, ptr,1)) { 
       frame->argptr += 1;
       return 1;
@@ -799,7 +799,7 @@ int frame_args_get_uint16(frame_t *frame, uint16_t *result){
   uint8_t *ptr = frame->payload;
   ptr += frame->argptr;
   
-  if(2 + frame->argptr < frame->len){  // +2 for uint16
+  if(2 + frame->argptr <= frame->len){  // +2 for uint16
     if(uint16_decode(result, ptr,2)) {
       frame->argptr += 2;
       return 1;
