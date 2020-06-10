@@ -1,6 +1,6 @@
 // This file generates some on host tests
 
-
+#include "framelst.h"
 #include "framebuf.h"
 #include "frame.h"
 
@@ -360,8 +360,17 @@ void test_frame_encode_decode(void) {
 void test_frame_to_string(void) {
 }
 
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void test_framelst_add() {
+}
 
-
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void test_framelst_remove() {
+}
 
 
 

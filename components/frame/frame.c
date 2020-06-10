@@ -396,6 +396,8 @@ frame_t *frame_create(uint8_t cmd, uint8_t ref, int32_t timestamp, size_t len) {
   frame_t *frame = malloc(sizeof(frame_t));
   frame->len = (uint8_t)len;
   frame->argptr = 0x0;
+  frame->next = 0x0;
+  frame->prev = 0x0;
   frame->version = FRAME_PROTOCOL_VERSION;
   frame->id = frame_next_id();
   frame->refid = ref;
@@ -429,6 +431,8 @@ frame_t *frame_decode(uint8_t *data, size_t len) {
   // alloc frame memory 
   frame_t *frame = malloc(sizeof(frame_t));
   frame->argptr = 0x0;
+  frame->next = 0x0;
+  frame->prev = 0x0;
 
   // version
   uint8_decode(&frame->version, ptr, 1); ptr += 1;                                          
@@ -591,100 +595,8 @@ int frame_encoded_len(frame_t *frame) {
   len += payload_encode_len(frame);
 
   return len;
- 
 }
 
-
-
-/* ------------------------------------------------------------------------
- * return the unescaped frame bytes. the caller needs to free the buffer 
- * --------------------------------------------------------------------- */
-/*uint8_t *frame_encode_frame_bytes(frame_t *frame, int *len) {
-
-  // calculate how many frame byte we are going to use
-  int flen = (int)FRAMELENWITHOUTPAYLOAD + (int)frame->len;
-  uint8_t *buf = (uint8_t*)malloc(flen);
-  uint8_t *ptr = buf;
-  
-  *len = flen;
-  
-  bytes_uint8_encode(frame->version, ptr); ptr += 1;
-  bytes_uint16_encode(frame->id, ptr); ptr += 2;
-  bytes_uint8_encode(frame->tcount, ptr); ptr += 1;
-  bytes_uint32_encode(frame->transmitted, ptr); ptr += 4;
-  bytes_uint16_encode(frame->refid, ptr); ptr += 2;
-  bytes_uint8_encode(frame->cmd, ptr); ptr += 1;
-  bytes_uint8_encode(frame->len, ptr); ptr += 1;
-
-  for(int i=0; i< (int)frame->len; i++) {
-    ptr[i] = frame->payload[i];
-  }
-
-  return buf;
-  }*/
-
-/* ------------------------------------------------------------------------
- * return the escaped network bytes including SFLAG & EFLAG. the caller 
- * needs to free the buffer 
- * --------------------------------------------------------------------- */
-/*uint8_t *frame_encode_network_bytes(frame_t *frame, int *len) {
-  uint8_t *fbuf;
-  int fbuflen;
-  uint8_t *nbuf;
-  int nbuflen;
-
-  int srcptr = 0;
-  int destptr = 0;
-
-  // alloc/get the frame bytes
-  fbuf = frame_encode_frame_bytes(frame, &fbuflen);
-
-  // count the number of control characters
-  nbuflen = fbuflen + 2; // +2 for SFLAG & EFLAG  
-
-  // count the number of control characters in the frame bytes 
-  for(int i=0;i<fbuflen;i++) {
-    if( (fbuf[i] == SFLAG) || (fbuf[i] == EFLAG) || (fbuf[i] == ESCAPE) ){
-      nbuflen++;
-    }
-  }
-
-  // alloc the network bytes
-  nbuf = (uint8_t*)malloc(nbuflen);
-
-  // write the SFLAG 
-  nbuf[destptr] = SFLAG; destptr++;
-  
-  // copy the network bytes
-  for(int i=0;i<fbuflen;i++) {
-
-    // if the char is a control character add an escape before the data
-    // else just copy the byte across
-    if( (fbuf[i] == SFLAG) || (fbuf[i] == EFLAG) || (fbuf[i] == ESCAPE) ){
-      nbuf[destptr] = ESCAPE;
-      destptr++;
-      nbuf[destptr] = fbuf[srcptr];
-      destptr++;
-      srcptr++;
-    } else {
-      nbuf[destptr] = fbuf[srcptr];
-      destptr++;
-      srcptr++;
-    }
-  }
-
-  // write the EFLAG
-  nbuf[destptr] = EFLAG; destptr++;
-
-  // free the frame bytes that we allocated 
-  free(fbuf);
-
-  // set the result length of the network bytes buffer 
-  *len = nbuflen;
-
-  // return the network bytes
-  return nbuf;
-  }*/
 
 /* ------------------------------------------------------------------------
  * Free a frame. Free the frame struct memory and the memory that was allocated for *payload.
@@ -754,8 +666,6 @@ char *frame_to_string(frame_t *frame) {
   sprintf(ptr,"] }");
   
   return result;
-  
-
 }
 
 

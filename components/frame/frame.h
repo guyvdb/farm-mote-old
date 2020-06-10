@@ -20,6 +20,10 @@
 #define SFLAG 0x2        // 2
 #define EFLAG 0x3        // 3
 
+
+struct frame; // forward declare 
+
+
 // Structure of the frame bytes 
 //
 // |--------------|---------------|------------|---------------|-------------------|---------------|------------|-----------|--------------------|--------------|
@@ -31,6 +35,12 @@
 // The transmitted bytes are 14 bytes + payload size + any escape characters such as SFLAG, EFLAG and ESCAPE, as needed.
 // The meaning of payload is individually defined by each command
 struct frame {
+  // the prev and next pointers are not part of the wire protocol
+  struct frame *prev;
+  struct frame *next;
+  
+
+  
    // The version of the frame protocol.
   uint8_t version;
   
