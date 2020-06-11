@@ -753,7 +753,7 @@ int frame_args_put_uint8(frame_t *frame, uint8_t value){
   uint8_t *ptr = frame->payload;
   ptr += frame->argptr;
   
-  if(1 + frame->argptr < frame->len) {
+  if(1 + frame->argptr <= frame->len) {
     uint8_encode(value, ptr,1);
     frame->argptr += 1;
     return 1;
@@ -768,7 +768,7 @@ int frame_args_put_uint16(frame_t *frame, uint16_t value){
   uint8_t *ptr = frame->payload; 
   ptr += frame->argptr;
   
-  if(2 + frame->argptr < frame->len) {
+  if(2 + frame->argptr <= frame->len) {
     uint16_encode(value, ptr,2);
     frame->argptr += 2;
     return 1;
@@ -783,7 +783,7 @@ int frame_args_put_uint32(frame_t *frame, uint32_t value){
   uint8_t *ptr = frame->payload;
   ptr += frame->argptr;
   
-  if(4 + frame->argptr < frame->len) {
+  if(4 + frame->argptr <= frame->len) {
     uint32_encode(value, ptr,4);
     frame->argptr += 4;
     return 1;
@@ -799,10 +799,6 @@ int frame_args_put_string(frame_t *frame, const char* value) {
   uint8_t *ptr = frame->payload;
   uint8_t len = (uint8_t)strlen(value);
   ptr += frame->argptr;
-  //if(len + 1 < frame->len) {
-    //    static int string_encode(const char *value, uint8_t *data, size_t len) {
-      string_encode(value, ptr, frame->len - frame->argptr);
-      //}
-
+  string_encode(value, ptr, frame->len - frame->argptr);
   return 1;
 }

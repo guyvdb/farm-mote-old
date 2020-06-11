@@ -9,16 +9,17 @@
 #define NACK         1
 /* RESERVED          2*/
 /* RESERVED          3*/
-#define IDENT        4
-#define TIMEREQ      5
-#define TIMESET      6
-#define TIMEZONESET  7
-
+#define IDENTREQ     4
+#define IDENT        5
+#define TIMEREQ      6
+#define TIMESET      7
+#define TIMEZONESET  8
 /* RESERVED          27*/
 
 #define UNKNOWN_STR             "UNKNOWN"
 #define ACK_STR                 "ACK"
 #define NACK_STR                "NACK"
+#define IDENTREQ_STR            "IDENTREQ"
 #define IDENT_STR               "IDENT"
 #define TIMEREQ_STR             "TIMEREQ"
 #define TIMESET_STR             "TIMESET"

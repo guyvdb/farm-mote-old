@@ -16,6 +16,8 @@ const char *command_to_string(uint8_t cmd) {
     return ACK_STR;
   case NACK:
     return NACK_STR;
+  case IDENTREQ:
+    return IDENTREQ_STR;
   case IDENT:
     return IDENT_STR;
   case TIMEREQ:
