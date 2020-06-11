@@ -135,13 +135,9 @@ void executor_task( void *pvParameters ) {
     if(wifi_valid()) {
       
       if (!socket_valid()) {
-        printf("socket is not valid\n");
         framebuf_reset(); 
         socket_disconnect();
         socket_create();
-
-
-        
         if(socket_connect()) {        
           // new connection to server. send ident 
           frame_t *ident = cmd_ident(moteid);
@@ -160,14 +156,20 @@ void executor_task( void *pvParameters ) {
         rxframe = socket_read_frame();
         if (rxframe != 0x0) {
 
-          printf("RX FRAME %d\n", rxframe->cmd);
+          //printf("RX FRAME %d\n", rxframe->cmd);
+
+          char *msg = frame_to_string(rxframe);
+          const char *cmd = command_to_string(rxframe->cmd);
+          printf("RX %s %s\n",cmd, msg);
+          free(msg);
+            // char *frame_to_string(frame_t *frame);
 
           switch(rxframe->cmd) {
           case TIMESET:
-            printf("CMD TIMESET\n");
+            //printf("CMD TIMESET\n");
             if(cmd_time_set(rxframe)) {
               clocksetflag = 1;
-              printf("clocksetflag=%d\n", clocksetflag);
+              //printf("clocksetflag=%d\n", clocksetflag);
             }            
             break;
           default:
@@ -186,7 +188,13 @@ void executor_task( void *pvParameters ) {
             if(!socket_write_frame(txframe)) {
               log_error("Executor failed to write a frame.");
             } else {
-              printf("TX FRAME %d\n", txframe->cmd);
+              //printf("TX FRAME %d\n", txframe->cmd);
+
+              char *msg = frame_to_string(txframe);
+              const char *cmd = command_to_string(txframe->cmd);
+              printf("TX %s %s\n",cmd, msg);
+              free(msg);
+              
             }
           } else {
             // socket is not connected ... need to log frame to disk 

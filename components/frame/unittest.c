@@ -147,6 +147,7 @@ static uint32_t arg4_esc = (EFLAG << 24) + (128 << 16) + (SFLAG << 8) + ESCAPE; 
  * --------------------------------------------------------------------- */
 void setUp (void) {
   framebuf_reset();
+  framelst_reset();
 }
 
 /* ------------------------------------------------------------------------
@@ -363,16 +364,268 @@ void test_frame_to_string(void) {
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-void test_framelst_add() {
+void test_framelst_add_when_list_empty() {
+  frame_t *f1 = make_frame();
+  f1->id = 1;
+  TEST_ASSERT_NOT_NULL(f1);
+  TEST_ASSERT(framelst_add(f1));
+
+  frame_t *found = framelst_find_by_id(f1->id);
+  TEST_ASSERT_NOT_NULL(found);
+  TEST_ASSERT_EQUAL_UINT8(f1->id, found->id);
 }
 
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-void test_framelst_remove() {
+void test_framelst_add_on_partial_list() {
+  frame_t *f1 = make_frame();
+  f1->id = 1;
+  TEST_ASSERT_NOT_NULL(f1);
+  TEST_ASSERT(framelst_add(f1));
+
+  frame_t *f2 = make_frame();
+  f2->id = 2;
+  TEST_ASSERT_NOT_NULL(f2);
+  TEST_ASSERT(framelst_add(f2));
+
+  frame_t *f3 = make_frame();
+  f3->id = 3;
+  TEST_ASSERT_NOT_NULL(f3);
+  TEST_ASSERT(framelst_add(f3));
+
+  frame_t *found = framelst_find_by_id(f3->id);
+  TEST_ASSERT_NOT_NULL(found);
+  TEST_ASSERT_EQUAL_UINT8(f3->id, found->id);  
 }
 
 
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void test_framelst_remove_lst_count1() {
+  frame_t *f1 = make_frame();
+  f1->id = 1;
+  TEST_ASSERT_NOT_NULL(f1);
+  TEST_ASSERT(framelst_add(f1));
+
+
+  TEST_ASSERT(framelst_remove(f1));
+
+  frame_t *found = framelst_find_by_id(f1->id);
+  TEST_ASSERT(found == 0x0);
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void test_framelst_remove_lst_count2_remove_head() {
+  frame_t *f1 = make_frame();
+  f1->id = 1;
+  TEST_ASSERT_NOT_NULL(f1);
+  TEST_ASSERT(framelst_add(f1));
+
+  frame_t *f2 = make_frame();
+  f2->id = 2;
+  TEST_ASSERT_NOT_NULL(f2);
+  TEST_ASSERT(framelst_add(f2));
+
+  TEST_ASSERT(framelst_remove(f1));
+
+  frame_t *found = framelst_find_by_id(f1->id);
+  TEST_ASSERT(found == 0x0);
+
+
+  found = framelst_find_by_id(f2->id);
+  TEST_ASSERT_NOT_NULL(found);
+  TEST_ASSERT_EQUAL_UINT8(f2->id, found->id);  
+}
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void test_framelst_remove_lst_count2_remove_tail() {
+  frame_t *f1 = make_frame();
+  f1->id = 1;
+  TEST_ASSERT_NOT_NULL(f1);
+  TEST_ASSERT(framelst_add(f1));
+
+  frame_t *f2 = make_frame();
+  f2->id = 2;
+  TEST_ASSERT_NOT_NULL(f2);
+  TEST_ASSERT(framelst_add(f2));
+
+  TEST_ASSERT(framelst_remove(f2));
+
+  frame_t *found = framelst_find_by_id(f2->id);
+  TEST_ASSERT(found == 0x0);
+
+
+  found = framelst_find_by_id(f1->id);
+  TEST_ASSERT_NOT_NULL(found);
+  TEST_ASSERT_EQUAL_UINT8(f1->id, found->id);  
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void test_framelst_remove_lst_count3_remove_head() {
+  frame_t *f1 = make_frame();
+  f1->id = 1;
+  TEST_ASSERT_NOT_NULL(f1);
+  TEST_ASSERT(framelst_add(f1));
+
+  frame_t *f2 = make_frame();
+  f2->id = 2;
+  TEST_ASSERT_NOT_NULL(f2);
+  TEST_ASSERT(framelst_add(f2));
+
+  frame_t *f3 = make_frame();
+  f3->id = 3;
+  TEST_ASSERT_NOT_NULL(f3);
+  TEST_ASSERT(framelst_add(f3));
+
+  TEST_ASSERT(framelst_remove(f1));
+
+  frame_t *found = framelst_find_by_id(f1->id);
+  TEST_ASSERT(found == 0x0);
+
+  found = framelst_find_by_id(f3->id);
+  TEST_ASSERT_NOT_NULL(found);
+  TEST_ASSERT_EQUAL_UINT8(f3->id, found->id);  
+}
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void test_framelst_remove_lst_count3_remove_tail() {
+  frame_t *f1 = make_frame();
+  f1->id = 1;
+  TEST_ASSERT_NOT_NULL(f1);
+  TEST_ASSERT(framelst_add(f1));
+
+  frame_t *f2 = make_frame();
+  f2->id = 2;
+  TEST_ASSERT_NOT_NULL(f2);
+  TEST_ASSERT(framelst_add(f2));
+
+  frame_t *f3 = make_frame();
+  f3->id = 3;
+  TEST_ASSERT_NOT_NULL(f3);
+  TEST_ASSERT(framelst_add(f3));
+
+  TEST_ASSERT(framelst_remove(f3));
+
+  frame_t *found = framelst_find_by_id(f3->id);
+  TEST_ASSERT(found == 0x0);
+
+  found = framelst_find_by_id(f2->id);
+  TEST_ASSERT_NOT_NULL(found);
+  TEST_ASSERT_EQUAL_UINT8(f2->id, found->id);  
+}
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void test_framelst_remove_lst_count3_remove_middle() {
+  frame_t *f1 = make_frame();
+  f1->id = 1;
+  TEST_ASSERT_NOT_NULL(f1);
+  TEST_ASSERT(framelst_add(f1));
+
+  frame_t *f2 = make_frame();
+  f2->id = 2;
+  TEST_ASSERT_NOT_NULL(f2);
+  TEST_ASSERT(framelst_add(f2));
+
+  frame_t *f3 = make_frame();
+  f3->id = 3;
+  TEST_ASSERT_NOT_NULL(f3);
+  TEST_ASSERT(framelst_add(f3));
+
+  TEST_ASSERT(framelst_remove(f2));
+
+  frame_t *found = framelst_find_by_id(f2->id);
+  TEST_ASSERT(found == 0x0);
+
+  found = framelst_find_by_id(f1->id);
+  TEST_ASSERT_NOT_NULL(found);
+  TEST_ASSERT_EQUAL_UINT8(f1->id, found->id);
+
+  found = framelst_find_by_id(f3->id);
+  TEST_ASSERT_NOT_NULL(found);
+  TEST_ASSERT_EQUAL_UINT8(f3->id, found->id);  
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void test_framelst_find_first_command() {
+  frame_t *f1 = make_frame();
+  f1->id = 1;
+  f1->cmd = 1;
+  TEST_ASSERT_NOT_NULL(f1);
+  TEST_ASSERT(framelst_add(f1));
+
+  frame_t *f2 = make_frame();
+  f2->id = 2;
+  f2->cmd = 2;
+  TEST_ASSERT_NOT_NULL(f2);
+  TEST_ASSERT(framelst_add(f2));
+
+  frame_t *f3 = make_frame();
+  f3->id = 3;
+  f3->cmd = 3;
+  TEST_ASSERT_NOT_NULL(f3);
+  TEST_ASSERT(framelst_add(f3));
+
+  for(uint8_t i=0;i<3;i++) {
+    frame_t *found = framelst_find_first_by_cmd(i+1);
+    TEST_ASSERT_NOT_NULL(found);
+    TEST_ASSERT_EQUAL_UINT8(i+1, found->id);  
+  }
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void test_framelst_find_next_command() {
+  frame_t *f1 = make_frame();
+  f1->id = 1;
+  f1->cmd = 1;
+  TEST_ASSERT_NOT_NULL(f1);
+  TEST_ASSERT(framelst_add(f1));
+
+  frame_t *f2 = make_frame();
+  f2->id = 2;
+  f2->cmd = 1;
+  TEST_ASSERT_NOT_NULL(f2);
+  TEST_ASSERT(framelst_add(f2));
+
+  frame_t *f3 = make_frame();
+  f3->id = 3;
+  f3->cmd = 1;
+  TEST_ASSERT_NOT_NULL(f3);
+  TEST_ASSERT(framelst_add(f3));
+
+  frame_t *found = framelst_find_first_by_cmd(1);
+  TEST_ASSERT_NOT_NULL(found);
+  TEST_ASSERT_EQUAL_UINT8(1,found->id);  
+  TEST_ASSERT_EQUAL_UINT8(1,found->cmd);
+
+  found = framelst_find_next_by_cmd(found);
+  TEST_ASSERT_NOT_NULL(found);
+  TEST_ASSERT_EQUAL_UINT8(2,found->id);
+  TEST_ASSERT_EQUAL_UINT8(1,found->cmd);
+
+  found = framelst_find_next_by_cmd(found);
+  TEST_ASSERT_NOT_NULL(found);
+  TEST_ASSERT_EQUAL_UINT8(3,found->id);
+  TEST_ASSERT_EQUAL_UINT8(1,found->cmd);
+}
 
 /* ------------------------------------------------------------------------
  * 
@@ -385,6 +638,16 @@ void main(char **argv, int argc) {
     RUN_TEST(test_frame_decode);
     RUN_TEST(test_frame_decode_escaped);
     RUN_TEST(test_frame_encode_decode);
+    RUN_TEST(test_framelst_add_when_list_empty);
+    RUN_TEST(test_framelst_add_on_partial_list);
+    RUN_TEST(test_framelst_remove_lst_count1);
+    RUN_TEST( test_framelst_remove_lst_count2_remove_head);
+    RUN_TEST(test_framelst_remove_lst_count2_remove_tail);
+    RUN_TEST(test_framelst_remove_lst_count3_remove_head);
+    RUN_TEST(test_framelst_remove_lst_count3_remove_tail);
+    RUN_TEST(test_framelst_remove_lst_count3_remove_middle);
+    RUN_TEST(test_framelst_find_first_command);
+    RUN_TEST(test_framelst_find_next_command);
     UNITY_END();
 }
 

@@ -11,6 +11,9 @@ typedef struct framelst framelst_t;
 
 typedef void (framelst_iteratorfn)(frame_t *frame);
 
+// Reset the framelst
+void framelst_reset(void);
+
 // Add a frame to the list 
 int framelst_add(frame_t *frame);
 
@@ -28,3 +31,6 @@ frame_t *framelst_find_first_by_cmd(uint8_t cmd);
 
 // find the next frame with a given command
 frame_t *framelst_find_next_by_cmd(frame_t *prev);
+
+
+void framelst_print(void);

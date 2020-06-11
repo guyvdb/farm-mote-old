@@ -9,6 +9,49 @@ static int32_t get_timestamp() {
   return 10;
 }
 
+
+const char *command_to_string(uint8_t cmd) {
+  switch(cmd) {
+  case ACK:
+    return ACK_STR;
+  case NACK:
+    return NACK_STR;
+  case IDENT:
+    return IDENT_STR;
+  case TIMEREQ:
+    return TIMEREQ_STR;
+  case TIMESET:
+    return TIMESET_STR;
+  case TIMEZONESET:
+    return TIMEZONESET_STR;
+  default:
+    return UNKNOWN_STR;
+  }
+}
+
+
+
+/* #define ACK          0 */
+/* #define NACK         1 */
+/* /\* RESERVED          2*\/ */
+/* /\* RESERVED          3*\/ */
+/* #define IDENT        4 */
+/* #define TIMEREQ      5 */
+/* #define TIMESET      6 */
+/* #define TIMEZONESET  7 */
+
+/* /\* RESERVED          27*\/ */
+
+/* #define UNKNOWN_STR             "UNKNOWN" */
+/* #define ACK_STR                 "ACK" */
+/* #define NACK_STR                "NACK" */
+/* #define IDENT_STR               "IDENT" */
+/* #define TIMEREQ_STR             "TIMEREQ" */
+/* #define TIMESET_STR             "TIMESET" */
+/* #define TIMEZONESET_STR         "TIMEZONESET" */
+
+
+
 /* ------------------------------------------------------------------------
  * Generate a frame with the IDENT command. Push 4 bytes (uint32_t) onto 
  * the payload which represents the ID of this mote.
@@ -93,7 +136,7 @@ int cmd_time_set(frame_t *frame) {
     return 0;
   }
 
-  printf("TIME SET\n");
+  //printf("TIME SET\n");
   return 1; 
 }
 

@@ -639,7 +639,7 @@ char *frame_to_string(frame_t *frame) {
     }
   }
   
-  char *result = malloc(slen+elen+plen);
+  char *result = malloc(slen+elen+plen+1);
   char *ptr = result;
 
   slen = sprintf(ptr ,"{v: %d, id: %d, tc: %d, time: %d, ref: %d, cmd: %d, len: %d, args: [",

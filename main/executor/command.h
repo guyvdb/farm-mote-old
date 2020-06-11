@@ -16,8 +16,17 @@
 
 /* RESERVED          27*/
 
+#define UNKNOWN_STR             "UNKNOWN"
+#define ACK_STR                 "ACK"
+#define NACK_STR                "NACK"
+#define IDENT_STR               "IDENT"
+#define TIMEREQ_STR             "TIMEREQ"
+#define TIMESET_STR             "TIMESET"
+#define TIMEZONESET_STR         "TIMEZONESET"
 
 
+
+const char *command_to_string(uint8_t cmd);
 
 
 frame_t *cmd_ident(uint32_t id);

@@ -35,7 +35,7 @@ int socket_create() {
   
   if(createdflag == 0) {
 
-    printf("createdflag is 0. creating a new socket.\n");
+    //printf("createdflag is 0. creating a new socket.\n");
     // Get the gateway address 
     err = get_gateway_address(host, sizeof(host));
     if (err != ESP_OK) {
@@ -77,12 +77,12 @@ int socket_create() {
     // Success 
     createdflag = 1;
 
-    printf("createdflag set to 1. created new socket. sock=%d\n", sock);
+    //printf("createdflag set to 1. created new socket. sock=%d\n", sock);
     return sock;
     
   } else {
     // already created - return the existing socket
-    printf("createdflag is 1. returning existing socket.\n");
+    //printf("createdflag is 1. returning existing socket.\n");
     return sock;
   }
 }
@@ -111,7 +111,7 @@ int socket_connect() {
  * disconnect the socket
  * --------------------------------------------------------------------- */
 void socket_disconnect() {
-  printf("disconnecting socket\n");
+  //printf("disconnecting socket\n");
   shutdown(sock, 0);
   close(sock);
   connectedflag = 0;
@@ -169,7 +169,7 @@ frame_t *socket_read_frame() {
       log_std_error(errno,"Networing read error.");
       socket_disconnect();
     } else if (errno == EAGAIN) {
-      printf("read timeout\n");
+      //printf("read timeout\n");
     }
     return 0x0;  
   } else if (nbytes == 0) {
@@ -182,6 +182,7 @@ frame_t *socket_read_frame() {
   }
 }
 
+/*
 static void printbuf(uint8_t *data, size_t len) {
   printf("[");
   for(int i=0;i<len;i++){
@@ -193,6 +194,7 @@ static void printbuf(uint8_t *data, size_t len) {
   }
   printf("]\n");
 }
+*/
 
 /* ------------------------------------------------------------------------
  * write a frame onto the socket. 1 = success, 0 = error 
@@ -202,7 +204,7 @@ int socket_write_frame(frame_t *frame) {
   int encoded;
   int len = frame_encoded_len(frame);
 
-  printf("socket_write_frame: sock=%d\n", sock);
+  //printf("socket_write_frame: sock=%d\n", sock);
   
 
   if (len < sizeof(buf)) {
@@ -212,13 +214,13 @@ int socket_write_frame(frame_t *frame) {
       return 0;
     } else {
 
-      printf("encoded=%d\n",encoded);
-      printbuf(buf, encoded);
+      //printf("encoded=%d\n",encoded);
+      //printbuf(buf, encoded);
 
       
       int nbytes = write(sock, buf, encoded);
 
-      printf("nbytes=%d\n",nbytes);
+      //printf("nbytes=%d\n",nbytes);
 
       if (nbytes == -1) {
         log_std_error(errno, "nbytes=-1");
