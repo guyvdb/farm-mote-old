@@ -1,7 +1,9 @@
 
+
 #include "command.h"
+#include "console.h"
 #include "log.h"
-#include "../kv/kv.h"
+#include <kv.h>
 
 
 #include <freertos/FreeRTOS.h>

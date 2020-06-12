@@ -1,5 +1,5 @@
 #include "command.h"
-#include "../console/log.h"
+#include <log.h>
 
 #include <stdio.h>
 #include <sys/time.h>

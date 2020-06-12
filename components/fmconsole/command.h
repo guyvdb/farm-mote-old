@@ -18,8 +18,6 @@ typedef struct cmd cmd_t;
 typedef cmd_t* cmd_p;
 
 
-void initialize_console_commands(void);
-void finalize_console_commands(void);
 
 cmd_p add_console_cmd(char *name, cmdfunc *func);
 cmd_p find_console_cmd(char *name);

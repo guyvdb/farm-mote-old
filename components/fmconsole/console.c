@@ -13,7 +13,7 @@
 #include "console.h"
 #include "command.h"
 #include "log.h"
-#include "../storage/storage.h"
+#include <storage.h>
 
 #define MOUNT_PATH "/data"
 

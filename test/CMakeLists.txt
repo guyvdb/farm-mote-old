@@ -16,10 +16,10 @@ include_directories(
 
 add_executable(frame_unit_test
   contrib/unity/unity.c 
-  ../components/frame/frame.c
-  ../components/frame/framebuf.c
-  ../components/frame/framelst.c
-  ../components/frame/unittest.c
+  ../components/fmframe/frame.c
+  ../components/fmframe/framebuf.c
+  ../components/fmframe/framelst.c
+  ../components/fmframe/unittest.c
 ) 
                 
 

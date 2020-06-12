@@ -19,9 +19,9 @@
 
 #include <sys/time.h>
 
-#include "../kv/kv.h"
+#include <kv.h>
 #include "../event/event.h"
-#include "../console/log.h"
+#include <log.h>
 #include "../wifi/wifi.h"
 
 

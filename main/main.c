@@ -1,10 +1,10 @@
 
 #include "filesystem/filesystem.h"
-#include "storage/storage.h"
-#include "console/console.h"
-#include "console/command.h"
+#include <storage.h>
+#include <console.h>
+//#include "console/command.h"
 #include "wifi/wifi.h"
-#include "kv/kv.h"
+#include <kv.h>
 #include "executor/executor.h"
 #include "event/event.h"
 
