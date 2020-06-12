@@ -1,6 +1,5 @@
-
-#include "filesystem/filesystem.h"
 #include <storage.h>
+#include <filesystem.h>
 #include <console.h>
 #include "wifi/wifi.h"
 #include <kv.h>
@@ -8,8 +7,6 @@
 
 
 void app_main(void) {
-
-  
   initialize_console_commands();
   initialize_storage();
   initialize_filesystem();
