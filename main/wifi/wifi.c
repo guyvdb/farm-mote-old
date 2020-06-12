@@ -19,7 +19,7 @@
 
 
 #include <kv.h>
-#include "../event/event.h"
+//#include "../event/event.h"
 #include <log.h>
 
 
@@ -31,6 +31,8 @@ static char wifi_password[64];
 
 static int retry_count;
 static int retry_delay;
+
+static EventGroupHandle_t wifi_event_group;
 
 
 static void wifi_reconnect(void) {
@@ -44,24 +46,24 @@ static void wifi_reconnect(void) {
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     switch (event_id) {
     case SYSTEM_EVENT_STA_START:
-      xEventGroupSetBits(app_event_group, WIFI_INITIALIZED);
+      xEventGroupSetBits(wifi_event_group, WIFI_INITIALIZED);
       log_info("Wifi connecting. event = STA_START");      
  	    esp_wifi_connect();
       break;
     case SYSTEM_EVENT_STA_STOP:
-      xEventGroupClearBits(app_event_group, WIFI_INITIALIZED);
+      xEventGroupClearBits(wifi_event_group, WIFI_INITIALIZED);
  	    ESP_ERROR_CHECK( esp_wifi_deinit());
       log_info("Wifi disconnecting. event = STA_STOP");
       break;
     case SYSTEM_EVENT_STA_CONNECTED:
-      xEventGroupSetBits(app_event_group,WIFI_CONNECTED);
+      xEventGroupSetBits(wifi_event_group,WIFI_CONNECTED);
       log_info("Wifi connected. event = STA_CONNECTED");
       retry_count = 0;
       retry_delay = 1000; // retry in 1 second
  	    break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
-      xEventGroupClearBits(app_event_group, WIFI_CONNECTED);
-      xEventGroupClearBits(app_event_group,  WIFI_GOT_IP);
+      xEventGroupClearBits(wifi_event_group, WIFI_CONNECTED);
+      xEventGroupClearBits(wifi_event_group,  WIFI_GOT_IP);
       log_info("Wifi disconnected. event = STA_DISCONNECTE");
 
       retry_count++;
@@ -86,7 +88,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
 static void ip_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     switch (event_id) {
     case IP_EVENT_STA_GOT_IP:
-      xEventGroupSetBits(app_event_group,  WIFI_GOT_IP);
+      xEventGroupSetBits(wifi_event_group,  WIFI_GOT_IP);
       tcpip_adapter_ip_info_t ip_info;
 	    ESP_ERROR_CHECK(tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &ip_info));
       log_info("Wifi IP address assigned. IP = %s", ip4addr_ntoa(&ip_info.ip));
@@ -97,7 +99,7 @@ static void ip_event_handler(void* arg, esp_event_base_t event_base, int32_t eve
       
       break;
     case IP_EVENT_STA_LOST_IP:
-      xEventGroupClearBits(app_event_group,  WIFI_GOT_IP);
+      xEventGroupClearBits(wifi_event_group,  WIFI_GOT_IP);
       log_info("Wifi IP address lost");
 
       // let frame connection client know interface has changed
@@ -110,6 +112,14 @@ static void ip_event_handler(void* arg, esp_event_base_t event_base, int32_t eve
       log_info("Wifi got unkown event. base = %d, event = %d",(int)event_base, event_id);
       break;
     }
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void wifi_wait_for_interface(void) {
+  const TickType_t xTicksToWait = 10000 / portTICK_PERIOD_MS; 
+  xEventGroupWaitBits(wifi_event_group,WIFI_GOT_IP,0,0,xTicksToWait);
 }
 
 
@@ -157,6 +167,8 @@ void initialize_wifi(void) {
   ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config) );
   ESP_ERROR_CHECK(esp_wifi_start() );
 
+  // set up the wifi event group
+  wifi_event_group =  xEventGroupCreate();
   
 }
 
@@ -165,6 +177,8 @@ void initialize_wifi(void) {
  * --------------------------------------------------------------------- */
 void deinitialize_wifi(void) {
 
+  vEventGroupDelete(wifi_event_group);
+  
   // unregister event handlers
   //ESP_ERROR_CHECK(esp_event_handler_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler));
   //ESP_ERROR_CHECK(esp_event_handler_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler));
@@ -176,7 +190,7 @@ void deinitialize_wifi(void) {
  * the wifi is valid if it is connected and has an IP
  * --------------------------------------------------------------------- */
 int wifi_valid(void) {
-   EventBits_t flag = xEventGroupGetBits(app_event_group);
+   EventBits_t flag = xEventGroupGetBits(wifi_event_group);
    if( (flag & WIFI_CONNECTED) && (flag & WIFI_GOT_IP) ){
      return 1;
    } else {

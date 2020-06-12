@@ -5,7 +5,6 @@ idf_component_register(SRCS
   "relay/relay.c"
   "wifi/wifi.c"
   "state/state.c"
-  "event/event.c"
   "main.c"
   INCLUDE_DIRS "."
   REQUIRES fmframe fmconsole fmkv

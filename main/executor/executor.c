@@ -20,7 +20,6 @@
 #include <sys/time.h>
 
 #include <kv.h>
-#include "../event/event.h"
 #include <log.h>
 #include "../wifi/wifi.h"
 
@@ -156,8 +155,9 @@ void executor_task( void *pvParameters ) {
 
     
   // Wait to get an IP
-  const TickType_t xTicksToWait = 10000 / portTICK_PERIOD_MS; 
-  xEventGroupWaitBits(app_event_group,WIFI_GOT_IP,0,0,xTicksToWait);
+  //  const TickType_t xTicksToWait = 10000 / portTICK_PERIOD_MS; 
+  //xEventGroupWaitBits(app_event_group,WIFI_GOT_IP,0,0,xTicksToWait);
+  wifi_wait_for_interface();
 
   // After the wifi is up get the mote id. If it does not exist
   // it will be generated with the use of esp_random() which needs
