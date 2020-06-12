@@ -14,7 +14,7 @@
 #include <lwip/err.h>
 #include <lwip/sys.h>
 
-
+#include <framecon.h>
 
 
 
@@ -89,12 +89,23 @@ static void ip_event_handler(void* arg, esp_event_base_t event_base, int32_t eve
       xEventGroupSetBits(app_event_group,  WIFI_GOT_IP);
       tcpip_adapter_ip_info_t ip_info;
 	    ESP_ERROR_CHECK(tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &ip_info));
-      log_info("Wifi IP address assigned. IP = %s", ip4addr_ntoa(&ip_info.ip));    
+      log_info("Wifi IP address assigned. IP = %s", ip4addr_ntoa(&ip_info.ip));
+
+      // let frame connection client know interface has changed
+      framecon_wifi_interface_state_change(1);
+       
+      
       break;
     case IP_EVENT_STA_LOST_IP:
       xEventGroupClearBits(app_event_group,  WIFI_GOT_IP);
       log_info("Wifi IP address lost");
- 	    break;
+
+      // let frame connection client know interface has changed
+      framecon_wifi_interface_state_change(0);
+       
+      
+
+      break;
     default:
       log_info("Wifi got unkown event. base = %d, event = %d",(int)event_base, event_id);
       break;

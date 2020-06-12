@@ -5,7 +5,6 @@ idf_component_register(SRCS
   "console/command.c"
   "console/log.c"
   "executor/executor.c"
-  "executor/network.c"
   "executor/command.c"
   "relay/relay.c"
   "wifi/wifi.c"

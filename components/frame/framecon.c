@@ -1,13 +1,20 @@
 #include "framecon.h"
+#include "framebuf.h"
+
 #include <stdio.h>
 #include <netinet/in.h>
+#include <sys/types.h> 
+#include <sys/socket.h>
 
-#define READTIMEOUT  1000 * 10             // 10 milliseconds -- in microseconds
+//#include <lwip/err.h>
+//#include <lwip/sockets.h>
+
+#define READTIMEOUT  1000 * 1             // 1 milliseconds -- in microseconds
 #define RXBUFLEN 256
 
 static int wifi_interface_state = 0;
 static int sock = -1;
-static char[128] gateway_address = "";
+static char gateway_address[128] = "";
 static uint16_t gateway_port = 0;
 static struct sockaddr_in dest_addr; 
 
@@ -42,8 +49,8 @@ static void log_conn_error() {
  *
  * --------------------------------------------------------------------- */
 static void socket_disconnect() {
-  shutdown(socket,0);
-  close(socket);
+  shutdown(sock,0);
+  close(sock);
   sock = -1;
 }
 
@@ -67,16 +74,16 @@ static int socket_connect() {
   }
 
   // set up the sockaddr_in structure 
-  dest_addr.sin_addr.s_addr = inet_addr(host);
+  dest_addr.sin_addr.s_addr = inet_addr(gateway_address);
   dest_addr.sin_family = AF_INET;
-  dest_addr.sin_port = htons(port);
+  dest_addr.sin_port = htons(gateway_port);
 
   // TODO why are these stored in variables?
   addr_family = AF_INET;
   ip_protocol = IPPROTO_IP;
 
   // create the socket 
-  sock = socket(addr_family, SOCKET_STREAM, ip_protocol);
+  sock = socket(addr_family, SOCK_STREAM, ip_protocol);
   if(sock < 0) {
     log_conn_error();
     return 0;
@@ -113,6 +120,31 @@ static void state_changed() {
   } else {
     socket_disconnect();
   }
+}
+
+
+int framecon_reconnect(void) {
+
+  printf("framecon_reconnect() sock = %d\n", sock);
+
+  if(wifi_interface_state && gateway_address[0] != 0x0 && gateway_port != 0) {
+    printf("interface+gateway ok\n");
+    if(sock >= 0) {
+      printf("disconnecting first\n");
+      socket_disconnect();
+    }
+    printf("connection");
+    return socket_connect();
+  } else {
+    printf("interface+gateway not ok\n");
+    if(sock >= 0) {
+      printf("disconnecting\n");
+      socket_disconnect();
+    }
+    return 0;
+  }
+  
+  
 }
 
 /* ------------------------------------------------------------------------
@@ -155,7 +187,7 @@ void framecon_wifi_interface_state_change (int state) {
  *
  * --------------------------------------------------------------------- */
 int framecon_ready() {
-  if(socket > -1) {
+  if(sock > -1) {
     return 1;
   } else {
     return 0;
@@ -172,13 +204,15 @@ int framecon_ready() {
 frame_t *framecon_read() {
   uint8_t buf[RXBUFLEN];
   int nbytes = read(sock, buf, RXBUFLEN - 1);
-
   if(nbytes < 0) {
-    log_conn_error();
+    if(errno != EAGAIN) { // EAGAIN is a read timeout 
+      log_conn_error();
+    }
     return 0x0;
   } else if (nbytes == 0) {
     log_conn_error();
     socket_disconnect();
+    socket_connect();
     return 0x0;
   } else {
     framebuf_write(buf, nbytes);
@@ -196,7 +230,6 @@ int framecon_write(frame_t *frame) {
   uint8_t buf[RXBUFLEN];
   int encoded;
   int len = frame_encoded_len(frame);
-  
   if(len < sizeof(buf)) {
     encoded = frame_encode(frame, buf, sizeof(buf));
     if (encoded == 0) {

@@ -1,23 +1,18 @@
 #include "executor.h"
-#include "frame.h"
-#include "framebuf.h"
-#include "network.h"
 #include "command.h"
 
+#include <frame.h>
+#include <framebuf.h>
+#include <framecon.h>
+#include <framelst.h>
 
 #include <string.h>
-
-
-#include <lwip/err.h>
-#include <lwip/sockets.h>
-#include <lwip/sys.h>
-#include <lwip/netdb.h>
-
-
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/event_groups.h>
+#include <freertos/queue.h>
+
 
 #include <esp_log.h>
 #include <esp_err.h>
@@ -31,10 +26,13 @@
 
 
 #define RX_BUF_SIZE 256
-static int running = 0;
+#define TIMEOUTDURATION 200 // milliseconds
 
+static int running = 0;
 static QueueHandle_t txqueue;
-static int clocksetflag = 0;
+
+
+
 
 /* ------------------------------------------------------------------------
  * 
@@ -86,12 +84,6 @@ void initialize_executor() {
   xTaskCreate(executor_task, "executor_task", 4096, NULL, 5, NULL);
 }
 
-/* ------------------------------------------------------------------------
- * 
- * --------------------------------------------------------------------- */
-void finalize_executor(void) {
-
-}
 
 /* ------------------------------------------------------------------------
  * 
@@ -103,6 +95,50 @@ static uint32_t get_unix_time() {
 }
 
 
+static int set_gateway_info() {
+  esp_err_t err;
+  uint16_t port;
+  char address[128];
+
+  err = get_gateway_address(address, sizeof(address));
+  if(err != ESP_OK) {
+    printf("failed to get gateway address.\n");
+    return 0;
+  }
+
+  err = get_gateway_port(&port);
+  if (err != ESP_OK) {
+    printf("failed to get gateway port.\n");
+    return 0;
+  }
+
+
+  if(framecon_set_gateway_address(address) != 1) {
+    printf("failed to set gateway address.\n");
+    return 0;
+  }
+
+  if(framecon_set_gateway_port(port) != 1) {
+    printf("failed to set gateway port.\n");
+    return 0;
+  }
+
+  return 1;
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void finalize_executor(void) {
+
+}
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+void transmit(frame_t* frame) {
+  xQueueSend(txqueue, &frame, 10);
+}
 
 /* ------------------------------------------------------------------------
  * The exector main task 
@@ -110,8 +146,9 @@ static uint32_t get_unix_time() {
 void executor_task( void *pvParameters ) {
   frame_t *rxframe = 0x0;
   frame_t *txframe = 0x0;
-
-  uint32_t id = 5000;
+  frame_t *frame = 0x0;
+  int timereqflag = 0;
+  //uint32_t id = 5000;
  
 
   // Create the transmission queue -- max 10 frames 
@@ -128,87 +165,88 @@ void executor_task( void *pvParameters ) {
 
   uint32_t moteid = get_mote_id();
   log_info("Mote ID = %d\n", moteid);
+
+  // setup the gateway info
+  set_gateway_info();
+
+
+
+  // Generate an ident and time request 
+  frame = cmd_ident(moteid);
+  transmit(frame);
+
+  frame = cmd_time_request();
+  transmit(frame);
+  
+
+
+ 
   
   // start main loop
   while (running) {
 
-    if(wifi_valid()) {
-      
-      if (!socket_valid()) {
-        framebuf_reset(); 
-        socket_disconnect();
-        socket_create();
-        if(socket_connect()) {        
-          // new connection to server. send ident 
-          frame_t *ident = cmd_ident(moteid);
-          xQueueSend(txqueue, &ident, 10);
+    if(framecon_ready()) {
+      // read a frame
+      rxframe = framecon_read();
+      if (rxframe != 0x0) {
+        // debug some output 
+        char *msg = frame_to_string(rxframe);
+        const char *cmd = command_to_string(rxframe->cmd);
+        printf("RX %s %s\n",cmd, msg);
+        free(msg);
+
+        // process the frame
+        switch(rxframe->cmd) {
+        case TIMESET:
+          if(cmd_time_set(rxframe)) {
+            // success
+            timereqflag = 1;
+          }            
+          break;
+        default:
+          printf("CMD %d UNKNOWN\n",rxframe->cmd);
+          break;
         }
+        // free the frame 
+        frame_free(rxframe);             
       }
 
-      // do we need to set the system clock
-      if(clocksetflag == 0) {
-        frame_t *time = cmd_time_request();
-        xQueueSend(txqueue, &time, 10);  
-      }
-      
-      // Read a frame 
-      if (socket_valid()) {
-        rxframe = socket_read_frame();
-        if (rxframe != 0x0) {
-
-          //printf("RX FRAME %d\n", rxframe->cmd);
-
-          char *msg = frame_to_string(rxframe);
-          const char *cmd = command_to_string(rxframe->cmd);
-          printf("RX %s %s\n",cmd, msg);
-          free(msg);
-            // char *frame_to_string(frame_t *frame);
-
-          switch(rxframe->cmd) {
-          case TIMESET:
-            //printf("CMD TIMESET\n");
-            if(cmd_time_set(rxframe)) {
-              clocksetflag = 1;
-              //printf("clocksetflag=%d\n", clocksetflag);
-            }            
-            break;
-          default:
-            printf("CMD %d UNKNOWN\n",rxframe->cmd);
-            break;
-          }
-          frame_free(rxframe);
-        }     
-      }
-      
-      // Write a frame
+      // write a frame 
       if( xQueueReceive(txqueue, &txframe, 100)) {        
-        if(txframe != 0x0) {
-          if(socket_valid()) {
-            // send the frame to the server
-            if(!socket_write_frame(txframe)) {
-              log_error("Executor failed to write a frame.");
-            } else {
-              //printf("TX FRAME %d\n", txframe->cmd);
-
-              char *msg = frame_to_string(txframe);
-              const char *cmd = command_to_string(txframe->cmd);
-              printf("TX %s %s\n",cmd, msg);
-              free(msg);
-              
-            }
-          } else {
-            // socket is not connected ... need to log frame to disk 
-          }          
-          // delete the frame
+        if(txframe != 0x0) {         
+          framecon_write(txframe);
+          char *msg = frame_to_string(txframe);
+          const char *cmd = command_to_string(txframe->cmd);
+          printf("TX %s %s\n",cmd, msg);
+          free(msg);          
           frame_free(txframe);
         }
       }        
+    } else {
+      // try connect again      
+      if(framecon_reconnect()) {        
+        frame = cmd_ident(moteid);
+        transmit(frame);
+       
+        
+        if(!timereqflag) {          
+          frame = cmd_time_request();
+          transmit(frame);          
+        }
+        
+      }
+
+      
     }
 
-
-    vTaskDelay(6000 / portTICK_PERIOD_MS);
+    vTaskDelay(TIMEOUTDURATION / portTICK_PERIOD_MS);
   }
   
   vTaskDelete(NULL);
 
 }
+
+
+
+
+

@@ -28,8 +28,11 @@ int framecon_set_gateway_port(uint16_t port);
 
 // Call this function to notify the framecon of a
 // change in the state of the wifi interface
-// state - the state of the interface. 1=up, 2=down
+// state - the state of the interface. 1=up, 0=down
 void framecon_wifi_interface_state_change (int state);
+
+
+int framecon_reconnect(void);
 
 // Is the framecon read to perform frame exchance
 // return - 1 read or 0 not ready 

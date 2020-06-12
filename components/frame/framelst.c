@@ -157,7 +157,7 @@ void framelst_print(void) {
   printf("--- Frame List ---\n");
 
   while(ptr != 0x0) {
-    printf("%d) 0x%X id=%d\n", pos, ptr, ptr->id);
+    printf("%d) 0x%X id=%d\n", pos,(unsigned int) ptr, ptr->id);
     ptr = ptr->next;
   }
   
