@@ -123,28 +123,21 @@ static void state_changed() {
 }
 
 
+/* ------------------------------------------------------------------------
+ *
+ * --------------------------------------------------------------------- */
 int framecon_reconnect(void) {
-
-  printf("framecon_reconnect() sock = %d\n", sock);
-
   if(wifi_interface_state && gateway_address[0] != 0x0 && gateway_port != 0) {
-    printf("interface+gateway ok\n");
     if(sock >= 0) {
-      printf("disconnecting first\n");
       socket_disconnect();
     }
-    printf("connection");
     return socket_connect();
   } else {
-    printf("interface+gateway not ok\n");
     if(sock >= 0) {
-      printf("disconnecting\n");
       socket_disconnect();
     }
     return 0;
-  }
-  
-  
+  }  
 }
 
 /* ------------------------------------------------------------------------

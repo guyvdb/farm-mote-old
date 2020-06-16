@@ -25,7 +25,7 @@
 
 
 #define RX_BUF_SIZE 256
-#define TIMEOUTDURATION 200 // milliseconds
+#define TIMEOUTDURATION 1000 // milliseconds
 
 static int running = 0;
 static QueueHandle_t txqueue;
