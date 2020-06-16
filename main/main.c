@@ -1,9 +1,9 @@
 #include <storage.h>
 #include <filesystem.h>
 #include <console.h>
-#include "wifi/wifi.h"
 #include <kv.h>
-#include "executor/executor.h"
+#include "wifi.h"
+#include "executor.h"
 
 
 void app_main(void) {

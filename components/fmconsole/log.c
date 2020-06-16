@@ -1,4 +1,4 @@
-#include "log.h"
+#include "console.h"
 #include <freertos/FreeRTOS.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -13,7 +13,7 @@ static int promptstatus = 1;
  * 
  * --------------------------------------------------------------------- */
 // Turn console logging on/off (1/0)
-void logging_on_off(int value) {
+void console_logging_on_off(int value) {
   logstatus = value;
 }
 
@@ -21,14 +21,14 @@ void logging_on_off(int value) {
  * 
  * --------------------------------------------------------------------- */
 // Turn the console prompt on/off (1/0)
-void prompt_on_off(int value){
+void console_prompt_on_off(int value){
   promptstatus = value;
 }
 
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-void log_std_error(const int err, const char *format, ...) {
+void console_log_std_error(const int err, const char *format, ...) {
   va_list args;
   const char *prompt = "farm-mote>";
 
@@ -100,7 +100,7 @@ static void log(const char *level, const char *format, ...) {
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-void log_info_uint8_array(uint8_t *data, size_t len, const char *format, ...) {
+void console_log_info_uint8_array(uint8_t *data, size_t len, const char *format, ...) {
   va_list args;
   const char *prompt = "farm-mote> ";
 
@@ -131,7 +131,7 @@ void log_info_uint8_array(uint8_t *data, size_t len, const char *format, ...) {
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-void log_error(const char *format, ...) {
+void console_log_error(const char *format, ...) {
   va_list args;
   va_start(args,format);
   log("ERROR",format,args);
@@ -141,7 +141,7 @@ void log_error(const char *format, ...) {
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-void log_info(const char *format, ...) {
+void console_log_info(const char *format, ...) {
   va_list args;
   va_start(args,format);
   log("INFO",format,args);

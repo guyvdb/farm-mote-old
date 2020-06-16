@@ -20,8 +20,8 @@
 #include <sys/time.h>
 
 #include <kv.h>
-#include <log.h>
-#include "../wifi/wifi.h"
+#include <console.h>
+#include "wifi.h"
 
 
 #define RX_BUF_SIZE 256
@@ -67,7 +67,7 @@ static uint32_t get_mote_id(void) {
     value = generate_mote_id();
     err = set_id(value);
     if (err != ESP_OK) {
-      log_error("Executor failed to generate the mote id.");
+      console_log_error("Executor failed to generate the mote id.");
       return 0;
     }
   }
@@ -164,7 +164,7 @@ void executor_task( void *pvParameters ) {
   // the wifi to be running
 
   uint32_t moteid = get_mote_id();
-  log_info("Mote ID = %d\n", moteid);
+  console_log_info("Mote ID = %d\n", moteid);
 
   // setup the gateway info
   set_gateway_info();

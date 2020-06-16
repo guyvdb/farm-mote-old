@@ -1,5 +1,5 @@
 #include "command.h"
-#include <log.h>
+#include <console.h>
 
 #include <stdio.h>
 #include <sys/time.h>
@@ -31,44 +31,18 @@ const char *command_to_string(uint8_t cmd) {
   }
 }
 
-
-
-/* #define ACK          0 */
-/* #define NACK         1 */
-/* /\* RESERVED          2*\/ */
-/* /\* RESERVED          3*\/ */
-/* #define IDENT        4 */
-/* #define TIMEREQ      5 */
-/* #define TIMESET      6 */
-/* #define TIMEZONESET  7 */
-
-/* /\* RESERVED          27*\/ */
-
-/* #define UNKNOWN_STR             "UNKNOWN" */
-/* #define ACK_STR                 "ACK" */
-/* #define NACK_STR                "NACK" */
-/* #define IDENT_STR               "IDENT" */
-/* #define TIMEREQ_STR             "TIMEREQ" */
-/* #define TIMESET_STR             "TIMESET" */
-/* #define TIMEZONESET_STR         "TIMEZONESET" */
-
-
-
 /* ------------------------------------------------------------------------
  * Generate a frame with the IDENT command. Push 4 bytes (uint32_t) onto 
  * the payload which represents the ID of this mote.
  * --------------------------------------------------------------------- */
 frame_t *cmd_ident(uint32_t id){
 
-
-  // frame_t *frame_create(uint8_t cmd, uint8_t ref, int32_t timestamp, size_t len);
-  
   frame_t *frame = frame_create(IDENT,0, get_timestamp(), 4); // 4 byte long payload
   frame->cmd = IDENT;
 
   frame_args_begin(frame);
   if (!frame_args_put_uint32(frame,id)) {
-    log_error("Failed to put mote id into frame arguments.");
+    console_log_error("Failed to put mote id into frame arguments.");
   }
   frame_args_end(frame);
   
@@ -84,8 +58,6 @@ frame_t *cmd_time_request() {
   frame->cmd = TIMEREQ;
   return frame;
 }
-
-
 
 /*
 time_t now;
@@ -115,15 +87,9 @@ int cmd_time_set(frame_t *frame) {
   struct timeval t;
   uint32_t time;
 
-
-
-  
-
-  
-  
   frame_args_begin(frame);
   if(!frame_args_get_uint32(frame, &time)) {
-    log_error("Command TIMESET does not have a 4 byte payload.");
+    console_log_error("Command TIMESET does not have a 4 byte payload.");
     frame_args_end(frame);
     return 0;
   }
@@ -134,11 +100,9 @@ int cmd_time_set(frame_t *frame) {
   t.tv_usec = 0;
   
   if(settimeofday(&t,NULL) != 0) {
-    log_error("Command TIMESET could not settimeofday");
+    console_log_error("Command TIMESET could not settimeofday");
     return 0;
-  }
-
-  //printf("TIME SET\n");
+  };
   return 1; 
 }
 
@@ -149,4 +113,13 @@ int cmd_time_set(frame_t *frame) {
  * --------------------------------------------------------------------- */
 int cmd_time_zone_set(frame_t *frame) {
   return 0;
+}
+
+
+/* ------------------------------------------------------------------------
+ * Create a log frame. Specifiy the payload size for creating the frame.
+ * The log type and log parameters are all put into the payload.
+ * --------------------------------------------------------------------- */
+frame_t *cmd_log(uint8_t payload_len) {
+   return frame_create(LOG,0, get_timestamp(), payload_len); 
 }

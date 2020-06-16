@@ -2,7 +2,6 @@
 
 #include "command.h"
 #include "console.h"
-#include "log.h"
 #include <kv.h>
 
 
@@ -33,16 +32,16 @@ cmd_p last_command;
  * --------------------------------------------------------------------- */
 static void cmd_log(char *argv[], int argc){
   if (argc != 2) {
-    log_error("Usage: log <on|off>.");
+    console_log_error("Usage: log <on|off>.");
   } else {
     if (strcmp(argv[1],"on")==0) {
-      logging_on_off(1);
-      log_info("Logging on.");
+      console_logging_on_off(1);
+      console_log_info("Logging on.");
     } else if(strcmp(argv[1], "off")==0) {
-      logging_on_off(1);
-      log_info("Logging off.");      
+      console_logging_on_off(1);
+      console_log_info("Logging off.");      
     } else {
-      log_error("Usage: log <on|off>.");
+      console_log_error("Usage: log <on|off>.");
     }
   }
 }
@@ -53,16 +52,16 @@ static void cmd_log(char *argv[], int argc){
  * --------------------------------------------------------------------- */
 static void cmd_prompt(char *argv[], int argc){
   if (argc != 2) {
-    log_error("Usage: prompt <on|off>.");
+    console_log_error("Usage: prompt <on|off>.");
   } else {
     if (strcmp(argv[1],"on")==0) {
-      prompt_on_off(1);
-      log_info("Prompt on.");
+      console_prompt_on_off(1);
+      console_log_info("Prompt on.");
     } else if(strcmp(argv[1], "off")==0) {
-      prompt_on_off(1);
-      log_info("Prompt off.");      
+      console_prompt_on_off(1);
+      console_log_info("Prompt off.");      
     } else {
-      log_error("Usage: prompt <on|off>.");
+      console_log_error("Usage: prompt <on|off>.");
     }
   }
 }
@@ -73,7 +72,7 @@ static void cmd_prompt(char *argv[], int argc){
  * 
  * --------------------------------------------------------------------- */
 static void cmd_reboot(char *argv[], int argc){
-  log_info("System will reboot in 1 second.");
+  console_log_info("System will reboot in 1 second.");
   vTaskDelay(1000 / portTICK_PERIOD_MS);
   esp_restart();
 }
@@ -103,7 +102,7 @@ static void cmd_id(char *argv[], int argc) {
     }        
       
   } else {
-    log_error("Usage: id <id>.");
+    console_log_error("Usage: id <id>.");
   }
 }
 
@@ -226,13 +225,8 @@ static void cmd_time(char *argv[], int argc) {
     }
 
   } else {
-    log_error("Usage: time <RFC3339 time>.");
+    console_log_error("Usage: time <RFC3339 time>.");
   }
-
-
-
-
-  
 }
 
 
