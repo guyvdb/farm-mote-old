@@ -1,7 +1,7 @@
 
 
 idf_component_register(SRCS
-  "log.c"
+  "command.c"
   INCLUDE_DIRS .
-  REQUIRES fmframe fmcommand 
+  REQUIRES fmframe fmconsole
   )

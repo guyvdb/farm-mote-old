@@ -17,10 +17,11 @@
 #include <esp_log.h>
 #include <esp_err.h>
 
-#include <sys/time.h>
+
 
 #include <kv.h>
 #include <console.h>
+#include <command.h>
 #include "wifi.h"
 
 
@@ -87,13 +88,16 @@ void initialize_executor() {
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-static uint32_t get_unix_time() {
+/*static uint32_t get_unix_time() {
    struct timeval tv;
    gettimeofday(&tv, NULL);
    return tv.tv_sec;
-}
+   }*/
 
 
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 static int set_gateway_info() {
   esp_err_t err;
   uint16_t port;

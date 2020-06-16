@@ -30,8 +30,7 @@
 
 
 const char *command_to_string(uint8_t cmd);
-
-frame_t *cmd_log(uint8_t payload_len);
+uint32_t get_unix_timestamp(void);
 frame_t *cmd_ident(uint32_t id);
 frame_t *cmd_time_request();
 int cmd_time_set(frame_t *frame);

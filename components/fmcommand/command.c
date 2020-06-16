@@ -5,11 +5,22 @@
 #include <sys/time.h>
 #include <esp_err.h>
 
-static int32_t get_timestamp() {
-  return 10;
+
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+uint32_t get_unix_timestamp() {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  
+  return (uint32_t)tv.tv_sec;
 }
 
-
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 const char *command_to_string(uint8_t cmd) {
   switch(cmd) {
   case ACK:
@@ -37,7 +48,7 @@ const char *command_to_string(uint8_t cmd) {
  * --------------------------------------------------------------------- */
 frame_t *cmd_ident(uint32_t id){
 
-  frame_t *frame = frame_create(IDENT,0, get_timestamp(), 4); // 4 byte long payload
+  frame_t *frame = frame_create(IDENT,0, get_unix_timestamp(), 4); // 4 byte long payload
   frame->cmd = IDENT;
 
   frame_args_begin(frame);
@@ -54,7 +65,7 @@ frame_t *cmd_ident(uint32_t id){
  * Generate a frame with the TIMEREQ command and no payload.
  * --------------------------------------------------------------------- */
 frame_t *cmd_time_request() {
-  frame_t *frame = frame_create(TIMEREQ, 0, get_timestamp(), 0); // no payload
+  frame_t *frame = frame_create(TIMEREQ, 0, get_unix_timestamp(), 0); // no payload
   frame->cmd = TIMEREQ;
   return frame;
 }
@@ -116,10 +127,3 @@ int cmd_time_zone_set(frame_t *frame) {
 }
 
 
-/* ------------------------------------------------------------------------
- * Create a log frame. Specifiy the payload size for creating the frame.
- * The log type and log parameters are all put into the payload.
- * --------------------------------------------------------------------- */
-frame_t *cmd_log(uint8_t payload_len) {
-   return frame_create(LOG,0, get_timestamp(), payload_len); 
-}

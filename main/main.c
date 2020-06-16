@@ -2,6 +2,7 @@
 #include <filesystem.h>
 #include <console.h>
 #include <kv.h>
+#include <switch.h>
 #include "wifi.h"
 #include "executor.h"
 
@@ -12,15 +13,15 @@ void app_main(void) {
   initialize_filesystem();
   initialize_console();
   initialize_kv();
+  initialize_switches();
   initialize_wifi();
-  initialize_executor();
+  initialize_executor();  // A task will be created 
     
-  // enter the event loop of console. Control will not return until console is
-  // stopped
-  console_event_loop();
+
+  console_event_loop();   // This runs within this task and will block 
 
 
-  // these are actually not being called. 
+  // TODO:  these are actually not being called. 
   finalize_console();
   finalize_executor();
   finalize_console_commands();

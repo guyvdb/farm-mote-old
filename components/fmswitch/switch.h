@@ -10,50 +10,37 @@
   after which they will be deactivated.
 
   For example set switch 1 high for 5 minutes then low again.
-
-
-
 */
 
 
-#define SWITCH_COUNT 10  // The total number of switches defined 
+#define SWITCH_COUNT 10  // The total number of switches defined
 
-typedef enum {
-              SWITCH_UNKOWN_PROCESS = 0,
-              SWITCH_PARALLEL_PROCESS = 1,
-              SWITCH_SERIAL_PROCESS = 2,
-} switch_processing_sequence_t;
+#define SWITCH_PROCESS_UNKNOWN    0
+#define SWITCH_PROCESS_PARALLEL   1
+#define SWITCH_PROCESS_SERIAL     2
 
 
+
+
+// This is the parameter passed to the switch_task 
 struct {
-  gpio_num_t gpio;
-  uint8_t state;
-} switch_t;
-
-//I (326) gpio: GPIO[19]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
-
-
-// The current state of all switches 
-struct {
-  switch_t switches[SWITCH_COUNT];
-} switch_state_t;
-
+} timed_toggle_task_t ;
 
 
 // When the system is launched, configure a set of GPIO
 // for use as switches 
-int switch_configure_gpio();
+void initialize_switches(void);
 
 // Create a task to run a parallel sequence of switching. The task will
 // set all pins high, wait duration milliseconds and then set all pins
 // low. It will then delete itself.
-int switch_parallel_timed_task(uint32_t duration, uint32_t *pins, int len);
+int switch_parallel_timed_toggle_task(uint32_t duration, uint8_t *pins, int len);
 
 // Create a task to run a serial sequence of switching. The task will
 // set all pins low and then cycle through each pin, seting it high for
 // duration of millseconds before setting it low again. Once all pins
 // have been cycled, the task will delete itself.
-int switch_serial_timed_task(uint32_t duration, uint32_t *pins, int len);
+int switch_serial_timed_toggle_task(uint32_t duration, uint8_t *pins, int len);
 
 
 

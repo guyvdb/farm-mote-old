@@ -93,3 +93,45 @@ esp_err_t set_id(uint32_t value) {
 }
 
 
+
+/* ------------------------------------------------------------------------
+ * Get the count of switches stored int he kv store. Switches are stored
+ * as an array of uint8_t 
+ * --------------------------------------------------------------------- */
+size_t get_relay_pin_count() {
+  size_t count;
+  esp_err_t err;
+
+  err = read_storage_blob_size("relay.pins",&count);
+  if(err != ESP_OK) {
+    printf("ERROR failed to get switch count from kv\n");
+    return 0;
+  }
+  return count;
+}
+
+/* ------------------------------------------------------------------------
+ * Get the switches. The value buffer should be get_switch_count() bytes long.
+ * value - a pointer to set the result to
+ * len - the amount of memory pointed to by value  
+ * --------------------------------------------------------------------- */
+esp_err_t get_relay_pins(uint8_t *value, size_t len) {
+  return read_storage_blob("relay.pins",value, len);
+}
+
+/* ------------------------------------------------------------------------
+ * Set the switches
+ * value - the data to set
+ * len - the number of switches 
+ * --------------------------------------------------------------------- */
+esp_err_t set_relay_pins(uint8_t *value, size_t len) {
+  return write_storage_blob("relay.pins",value, len);
+}
+
+/*
+// Figure out the size of a blob in storage 
+esp_err_t read_storage_blob_size(const char *key, size_t *len); 
+esp_err_t read_storage_blob(const char *key, uint8_t *data, size_t len);
+esp_err_t write_storage_blob(const char *key, uint8_t *data, size_t len);
+
+*/

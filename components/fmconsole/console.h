@@ -29,3 +29,23 @@ void console_log_info_uint8_array(uint8_t *data, size_t len, const char *format,
 
 
 
+// command related
+
+typedef void (cmdfunc)(char *argv[], int argc);
+
+
+struct cmd {
+  char *name;
+  void *next;
+  void *prev;
+  cmdfunc *func;
+};
+typedef struct cmd cmd_t;
+typedef cmd_t* cmd_p;
+
+
+
+cmd_p add_console_cmd(char *name, cmdfunc *func);
+cmd_p find_console_cmd(char *name);
+
+

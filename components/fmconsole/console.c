@@ -1,4 +1,6 @@
 
+#include "console.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <esp_log.h>
@@ -8,11 +10,11 @@
 #include <driver/uart.h>
 #include <esp_vfs_dev.h>
 #include <esp_err.h>
-
-
-#include "console.h"
-#include "command.h"
 #include <storage.h>
+
+
+
+
 
 #define MOUNT_PATH "/data"
 

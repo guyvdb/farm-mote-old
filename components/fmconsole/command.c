@@ -1,6 +1,3 @@
-
-
-#include "command.h"
 #include "console.h"
 #include <kv.h>
 
