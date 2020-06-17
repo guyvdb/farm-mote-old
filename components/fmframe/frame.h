@@ -160,9 +160,9 @@ int frame_args_get_string_len(frame_t *frame, size_t *result);
 // frame_arg_get_string_len().
 // frame - the frame to get the argument from
 // result - a char buffer len bytes long
-// len - the number of char bytes that will be extracted
+// len - the number of char bytes that will be extracted including the 0x0 termination 
 // return - 1 on success or 0 on failure
-int frame_args_get_string(frame_t *frame, char *result);
+int frame_args_get_string(frame_t *frame, char *result, size_t len);
 
 
 // Put a uint8 into the frame payload at the point of the internal pointer

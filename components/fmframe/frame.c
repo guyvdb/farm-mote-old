@@ -738,11 +738,57 @@ int frame_args_get_uint32(frame_t *frame, uint32_t *result){
   return 0;  
 }
 
+
 /* ------------------------------------------------------------------------
- * Memory is allocated to result and the caller needs to free it 
+ * Get the length of the next string argument in the payload. This advances
+ * the internal pointer. The argument is length encoded. I.e.
+ * len(uint8)<len bytes>... This function returns the len portion,
+ * including space to null terminate the char string.
  * --------------------------------------------------------------------- */
-int frame_args_get_string(frame_t *frame, char *result) {
-  return 0;
+int frame_args_get_string_len(frame_t *frame, size_t *result) {
+  // figure out the size of the string and add 1 for the null termination
+
+  // int frame_args_get_uint8(frame_t *frame, uint8_t *result){
+  uint8_t len;
+  if(!frame_args_get_uint8(frame, &len)) {
+    printf("Error: Failed to get string length from frame args\n");
+    return 0;
+  }
+
+  *result = len + 1;
+  return 1;
+}
+
+
+/* ------------------------------------------------------------------------
+ * Get a null terminated string argument from the payload. This advances
+ * the internal pointer. The result buffer needs to be at least len bytes
+ * long. Len needs to be provided from a previous call to
+ * frame_arg_get_string_len().
+ * frame - the frame to get the argument from
+ * result - a char buffer len bytes long
+ * len - the number of char bytes that will be extracted including the 0x0 termination 
+ * return - 1 on success or 0 on failure
+ * --------------------------------------------------------------------- */
+int frame_args_get_string(frame_t *frame, char *result, size_t len) {
+
+  // we need to extract len - 1 bytes from the args and then set
+  // the last byte of the result buffer to 0x0
+
+  uint8_t byte;
+  
+  for(int i=0; i<len-1;i++) {
+    if(!frame_args_get_uint8(frame, &byte)) {
+      printf("Error: failed to get string byte from frame args.\n");
+      return 0;
+    }
+    result[i] = (char)byte;
+  }
+
+  result[len-1] = 0x0;
+  
+  
+  return 1;
 }
 
 /* ------------------------------------------------------------------------
