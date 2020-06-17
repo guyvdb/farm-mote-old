@@ -22,6 +22,8 @@ static int process_running = 0;
 static int32_t task_start_time = 0;
 static int32_t pin_start_time = 0;
 
+static esp_timer_handle_t timer;
+
 
 
 static void parallel_timed_task_callback(void* arg) {
@@ -50,6 +52,9 @@ static void parallel_timed_task_callback(void* arg) {
     }
   }
 
+  // delete the timer
+  esp_timer_delete(timer);
+
 }
 
 static void serial_timed_task_callback(void* arg) {
@@ -61,7 +66,7 @@ static void serial_timed_task_callback(void* arg) {
 
   // if all complete log task complete
 
-  
+  // if all complete stop and delete the timer 
   
 }
 
@@ -91,7 +96,7 @@ void relay_reconfigure_pins(void) {
     io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
 
     //set as output mode
-    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.mode = GPIO_MODE_INPUT_OUTPUT;//GPIO_MODE_OUTPUT_OD;
 
     //bit mask of the pin
     io_conf.pin_bit_mask = (1ULL << pins[i]);
@@ -106,7 +111,32 @@ void relay_reconfigure_pins(void) {
     gpio_config(&io_conf);
   }
 }
+/*
+The question was asked several times already, you must set the gpio mode to GPIO_MODE_INPUT_OUTPUT (or GPIO_MODE_INPUT_OUTPUT_OD)
+ if you want to use the gpio as output and read its state back. Or you can simply save the state in a variable after gpio_set_level().
+*/
 
+
+// return the current state of the pin 
+int relay_current_state(uint8_t pin) {
+  return gpio_get_level(pin);
+}
+
+// Set the given pin high 
+void relay_on(uint8_t pin) {
+  gpio_set_level(pin, 1);
+  if(framecon_write(log_create_relay_state_change(pin, 1, get_unix_timestamp())) == 0 ) {
+    printf("Error: failed to log relay %d state change to %d\n", pin, 1);
+  }   
+}
+
+// Set the given pin low
+void relay_off(uint8_t pin) {
+  gpio_set_level(pin, 0);
+  if(framecon_write(log_create_relay_state_change(pin, 0, get_unix_timestamp())) == 0 ) {
+    printf("Error: failed to log relay %d state change to %d\n", pin, 0);
+  }     
+}
 
 
 // If we are in the middle of a relay process return 1 else 0
@@ -115,16 +145,20 @@ int relay_is_process_running(void) {
 }
 
 
-// Create a task to run a parallel sequence of switching. The task will
-// set all pins high, wait duration milliseconds and then set all pins
-// low. It will then delete itself.
-int relay_parallel_timed_task(uint32_t duration, uint8_t *pins, int len) {
-  esp_timer_handle_t handle;
+// Run a parallel sequence of switching. The task will
+// set all pins high, wait duration seconds and then set all pins
+// low. 
+int relay_parallel_timed_toggle_task(uint32_t duration, uint8_t *pins, int len) {
+  
 
   if(len > RELAY_MAXLEN) {
     printf("ERROR too many relays.\n");
     return 0;
   }
+
+
+  // the duration is in seconds. the timer task needs microseconds.
+  uint64_t timeout =    duration * 1000 * 1000; //   ((uint64_t)duration)*1000*1000); // seconds * 1000 = ms * 1000 = us
 
   // set the len of active pins
   active_pincount = len;
@@ -139,7 +173,7 @@ int relay_parallel_timed_task(uint32_t duration, uint8_t *pins, int len) {
   const esp_timer_create_args_t timer_args = {.callback = &parallel_timed_task_callback,.name = "parallel_timer"};
   
   // Create the timer 
-  ESP_ERROR_CHECK(esp_timer_create(&timer_args, &handle));
+  ESP_ERROR_CHECK(esp_timer_create(&timer_args, &timer));
 
   // set all pins high + record pin as active 
   for(int i=0; i< len; i++) {
@@ -148,7 +182,7 @@ int relay_parallel_timed_task(uint32_t duration, uint8_t *pins, int len) {
   }
 
   // start the timer
-  ESP_ERROR_CHECK(esp_timer_start_once(handle, duration));
+  ESP_ERROR_CHECK(esp_timer_start_once(timer, timeout));
 
   // log all state changes
   for(int i=0;i<len;i++) {

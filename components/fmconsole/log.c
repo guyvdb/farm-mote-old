@@ -12,6 +12,32 @@ static int promptstatus = 1;
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
+static void console_log(const char *level, const char *format, ...) {
+  va_list args;
+  const char* prompt = "farm-mote> ";
+
+  // are we displaying the log 
+  if(logstatus) {
+    if(promptstatus) {
+      printf("\n"); // get off the prompt line 
+    }
+
+    printf("[%s] ",level);
+    va_start(args, format);
+    printf(format, args);
+    va_end(args);
+    printf("\n");
+
+    if (promptstatus) {
+      printf("%s", prompt);
+    }
+  }
+}
+
+
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
 // Turn console logging on/off (1/0)
 void console_logging_on_off(int value) {
   logstatus = value;
@@ -72,30 +98,7 @@ void console_log_std_error(const int err, const char *format, ...) {
   }  
 }
 
-/* ------------------------------------------------------------------------
- * 
- * --------------------------------------------------------------------- */
-static void log(const char *level, const char *format, ...) {
-  va_list args;
-  const char* prompt = "farm-mote> ";
 
-  // are we displaying the log 
-  if(logstatus) {
-    if(promptstatus) {
-      printf("\n"); // get off the prompt line 
-    }
-
-    printf("[%s] ",level);
-    va_start(args, format);
-    printf(format, args);
-    va_end(args);
-    printf("\n");
-
-    if (promptstatus) {
-      printf("%s", prompt);
-    }
-  }
-}
 
 /* ------------------------------------------------------------------------
  * 
@@ -134,7 +137,7 @@ void console_log_info_uint8_array(uint8_t *data, size_t len, const char *format,
 void console_log_error(const char *format, ...) {
   va_list args;
   va_start(args,format);
-  log("ERROR",format,args);
+  console_log("ERROR",format,args);
   va_end(args);
 }
 
@@ -144,6 +147,6 @@ void console_log_error(const char *format, ...) {
 void console_log_info(const char *format, ...) {
   va_list args;
   va_start(args,format);
-  log("INFO",format,args);
+  console_log("INFO",format,args);
   va_end(args);
 }

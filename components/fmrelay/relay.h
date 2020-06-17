@@ -35,13 +35,22 @@ void initialize_relays(void);
 // changed via a console or server command 
 void relay_reconfigure_pins(void);
 
+// return the current state of the pin 
+int relay_current_state(uint8_t pin);
+
+// Set the given pin high 
+void relay_on(uint8_t pin);
+
+// Set the given pin low
+void relay_off(uint8_t pin);
+
 
 // If we are in the middle of a relay process return 1 else 0
 int relay_is_process_running(void);
 
-// Create a task to run a parallel sequence of switching. The task will
-// set all pins high, wait duration milliseconds and then set all pins
-// low. It will then delete itself.
+// Run a parallel sequence of switching. The task will
+// set all pins high, wait duration seconds and then set all pins
+// low. 
 int relay_parallel_timed_toggle_task(uint32_t duration, uint8_t *pins, int len);
 
 // Create a task to run a serial sequence of switching. The task will
