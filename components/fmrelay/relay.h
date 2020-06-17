@@ -13,11 +13,11 @@
 */
 
 
-#define SWITCH_COUNT 10  // The total number of switches defined
+#define RELAY_MAXLEN 10  // The total number of switches defined
 
-#define SWITCH_PROCESS_UNKNOWN    0
-#define SWITCH_PROCESS_PARALLEL   1
-#define SWITCH_PROCESS_SERIAL     2
+#define RELAY_PROCESS_UNKNOWN    0
+#define RELAY_PROCESS_PARALLEL   1
+#define RELAY_PROCESS_SERIAL     2
 
 
 
@@ -29,18 +29,26 @@ struct {
 
 // When the system is launched, configure a set of GPIO
 // for use as switches 
-void initialize_switches(void);
+void initialize_relays(void);
+
+// Reconfigure the relay pins. Should be called is the pin values are
+// changed via a console or server command 
+void relay_reconfigure_pins(void);
+
+
+// If we are in the middle of a relay process return 1 else 0
+int relay_is_process_running(void);
 
 // Create a task to run a parallel sequence of switching. The task will
 // set all pins high, wait duration milliseconds and then set all pins
 // low. It will then delete itself.
-int switch_parallel_timed_toggle_task(uint32_t duration, uint8_t *pins, int len);
+int relay_parallel_timed_toggle_task(uint32_t duration, uint8_t *pins, int len);
 
 // Create a task to run a serial sequence of switching. The task will
 // set all pins low and then cycle through each pin, seting it high for
 // duration of millseconds before setting it low again. Once all pins
 // have been cycled, the task will delete itself.
-int switch_serial_timed_toggle_task(uint32_t duration, uint8_t *pins, int len);
+int relay_serial_timed_toggle_task(uint32_t duration, uint8_t *pins, int len);
 
 
 

@@ -1,5 +1,6 @@
 
 
+
 #include <string.h>
 
 #include "esp_err.h"
@@ -195,15 +196,15 @@ esp_err_t read_storage_blob(const char *key, uint8_t *data, size_t len) {
     nvs_close(handle);
     return err;
   }
-
+  
   // buffer is too small 
   if(len < size) {
     nvs_close(handle);
     return ESP_ERR_NO_MEM;
   }
-
+ 
   // read the value
-  err = nvs_get_blob(handle, key, data, len);
+  err = nvs_get_blob(handle, key, data, &size);
   if (err != ESP_OK) {
     nvs_close(handle);
     return err;
@@ -234,7 +235,7 @@ esp_err_t write_storage_blob(const char *key, uint8_t *data, size_t len) {
     return err;
   }
 
-
+  nvs_commit(handle);
   nvs_close(handle);
   return ESP_OK;  
 }

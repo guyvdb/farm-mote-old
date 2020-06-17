@@ -1,19 +1,26 @@
+#include <esp_log.h>
+
 #include <storage.h>
 #include <filesystem.h>
 #include <console.h>
 #include <kv.h>
-#include <switch.h>
+#include <relay.h>
+
+
 #include "wifi.h"
 #include "executor.h"
 
 
 void app_main(void) {
+
+  esp_log_level_set("*", ESP_LOG_NONE);
+  
   initialize_console_commands();
   initialize_storage();
   initialize_filesystem();
   initialize_console();
   initialize_kv();
-  initialize_switches();
+  initialize_relays();
   initialize_wifi();
   initialize_executor();  // A task will be created 
     

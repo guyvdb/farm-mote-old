@@ -1,6 +1,7 @@
 #include "console.h"
-#include <kv.h>
 
+#include <kv.h>
+#include <relay.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -16,9 +17,6 @@
 
 cmd_p root_command;
 cmd_p last_command;
-
-
-
 
 
 // ----------------------- START CONSOLE COMMANDS -------------------------
@@ -103,15 +101,6 @@ static void cmd_id(char *argv[], int argc) {
   }
 }
 
-
-
-
-/*
-
-esp_err_t get_id(uint32_t *value);
-esp_err_t set_id(uint32_t value);
-
-*/
 
 /* ------------------------------------------------------------------------
  * 
@@ -335,6 +324,56 @@ static void cmd_gateway(char *argv[], int argc) {
 }
 
 
+/* ------------------------------------------------------------------------
+ * The relay command has sub commands: pins, on, off
+ * --------------------------------------------------------------------- */
+static void cmd_relay(char *argv[], int argc) {
+  esp_err_t err;
+  uint8_t relays[RELAY_MAXLEN];
+  
+  
+  if(argc >= 2) {
+    if(strcmp(argv[1], "pins") == 0) {
+      if(argc == 2) {
+        // get
+        size_t len = get_relay_pin_count();
+        err = get_relay_pins(&relays[0], RELAY_MAXLEN);
+        if (err != ESP_OK) {
+           printf("error %d %s\n", err, esp_err_to_name(err));
+        } else {
+          printf("relay pins ");
+          for(int i=0;i<len;i++) {
+            printf("%d ",relays[i]);
+          }
+          printf("\n");
+        }
+      } else {
+        // set
+        size_t len = argc - 2;
+        for(int i = 0; i< len; i++) {
+          relays[i] = (uint8_t)atoi(argv[i+2]); 
+        }
+        err = set_relay_pins(relays, len);
+        if (err != ESP_OK) {
+           printf("error %d %s\n", err, esp_err_to_name(err));
+        } else {
+          printf("relay pins *set*\n");
+        }
+        
+      }
+    } else if (strcmp(argv[1], "on") == 0) {
+      printf("relay on <value> not implemented\n");
+    } else if (strcmp(argv[1], "off") == 0) {
+      printf("relay off <value> not implemented\n");
+    } else {
+      printf("relay [pins|on|off] <value(s)>.\n");  
+    }
+  } else {
+    printf("relay [pins|on|off] <value(s)>.\n");  
+  }
+}
+
+
 
 // ------------------------ END CONSOLE COMMANDS --------------------------
 
@@ -373,6 +412,7 @@ void initialize_console_commands(void) {
   add_console_cmd("log", cmd_log);
   add_console_cmd("prompt", cmd_prompt);
   add_console_cmd("mem", cmd_mem);
+  add_console_cmd("relay", cmd_relay);
   
 }
 

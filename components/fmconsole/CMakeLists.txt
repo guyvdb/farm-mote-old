@@ -5,5 +5,5 @@ idf_component_register(SRCS
   "command.c"
   "log.c"
   INCLUDE_DIRS .
-  REQUIRES fmkv console
+  REQUIRES fmkv fmrelay console
   )

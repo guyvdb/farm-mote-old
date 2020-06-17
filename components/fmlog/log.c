@@ -24,8 +24,8 @@
 static frame_t *log_create(uint8_t logtype, uint8_t len) {
   frame_t *frame = frame_create(LOG,0,get_unix_timestamp(),len + 1); // +1 for logtype
   frame_args_begin(frame);
-  frame_args_put_uint8(frame, LOGTYPE_POWERUP);
-  // do not call frame_args_end()
+  frame_args_put_uint8(frame, logtype);
+  // do not call frame_args_end(). This is called by the caller of this func.
   return frame;  
 }
 
@@ -33,14 +33,18 @@ static frame_t *log_create(uint8_t logtype, uint8_t len) {
  * 
  * --------------------------------------------------------------------- */
 frame_t *log_create_powerup(void) {
-  return log_create(LOGTYPE_POWERUP,0);
+  frame_t *frame = log_create(LOGTYPE_POWERUP,0);
+  frame_args_end(frame);
+  return frame;
 }
 
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
 frame_t *log_create_reboot(void) {
-  return log_create(LOGTYPE_REBOOT,0);
+  frame_t *frame = log_create(LOGTYPE_REBOOT,0);
+  frame_args_end(frame);
+  return frame;
 }
 
 /* ------------------------------------------------------------------------
@@ -49,29 +53,30 @@ frame_t *log_create_reboot(void) {
 frame_t *log_create_timeset(int32_t time) {
   frame_t *frame = log_create(LOGTYPE_TIMESET,4);
   frame_args_put_uint32(frame, (uint32_t)time);
+  frame_args_end(frame);
   return frame;
 }
 
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-frame_t *log_create_switch_state_change(uint32_t switch_num, uint8_t newstate, int32_t time) {
-  frame_t *frame = log_create(LOGTYPE_SWITCH_STATE_CHANGE, 9);
-  frame_args_put_uint32(frame, switch_num);
+frame_t *log_create_relay_state_change(uint8_t relay, uint8_t newstate, int32_t time) {
+  frame_t *frame = log_create(LOGTYPE_RELAY_STATE_CHANGE, 6);
+  frame_args_put_uint8(frame, relay);
   frame_args_put_uint8(frame, newstate);
   frame_args_put_uint32(frame, (uint32_t)time);
+  frame_args_end(frame);  
   return frame;
 }
 
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
-frame_t *log_create_switch_timed_toggle_complete(uint32_t switch_num, int32_t start_time, int32_t end_time, uint8_t start_state, uint8_t end_state) {
-  frame_t *frame = log_create(LOGTYPE_SWITCH_TIMED_TOGGLE_COMPLETE, 14);
-  frame_args_put_uint32(frame, switch_num);
+frame_t *log_create_relay_timed_toggle_complete(uint8_t relay, int32_t start_time, int32_t end_time) {
+  frame_t *frame = log_create(LOGTYPE_RELAY_TIMED_TOGGLE_COMPLETE, 9);
+  frame_args_put_uint8(frame, relay);
   frame_args_put_uint32(frame, (uint32_t)start_time);
   frame_args_put_uint32(frame, (uint32_t)end_time);
-  frame_args_put_uint8(frame, start_state);
-  frame_args_put_uint8(frame, end_state);
+  frame_args_end(frame);  
   return frame;
 }
