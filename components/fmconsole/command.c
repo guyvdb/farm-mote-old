@@ -126,6 +126,7 @@ static void cmd_mem(char *argv[], int argc) {
 static void cmd_time(char *argv[], int argc) {
 
   if (argc == 1) {
+    // Get time
     struct timeval now;
     gettimeofday(&now,0x0);
     time_t seconds = now.tv_sec;
