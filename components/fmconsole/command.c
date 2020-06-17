@@ -353,11 +353,23 @@ static void cmd_relay(char *argv[], int argc) {
       if(argc < 4) {
         printf("relay ptask <duration-seconds> <pin> ... <pin>\n");
       } else {
+
+        printf("args: [");
+        for(int i=0;i<argc;i++) {
+          if(i == argc-1) {
+            printf("%d:%s",i,argv[i]);
+          } else {
+            printf("%d:%s | ",i,argv[i]);
+          }
+        }
+        printf("]\n");
         
         uint32_t duration = atoi(argv[2]); // get duration 
         size_t len = argc - 3;             // figure out pin count 
-        for(int i=0;i<len;i++) {           // get pins 
-          relays[i] = argv[i+3];
+        for(int i=0;i<len;i++) {           // get pins
+          uint8_t pin = atoi(argv[i+3]);
+          printf("pin %d: %d\n",i, pin);
+          relays[i] = pin;
         }
 
         // fire the task

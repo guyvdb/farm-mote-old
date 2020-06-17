@@ -182,9 +182,6 @@ void executor_task( void *pvParameters ) {
   frame = cmd_time_request();
   transmit(frame);
   
-
-
- 
   
   // start main loop
   while (running) {

@@ -156,6 +156,17 @@ int relay_parallel_timed_toggle_task(uint32_t duration, uint8_t *pins, int len) 
     return 0;
   }
 
+  printf("ptask - pins param: [");
+  for(int i=0;i<len;i++) {
+    if(i == len -1) {
+      printf("%d",pins[i]);
+    } else {
+      printf("%d ",pins[i]);
+    }
+  }
+  printf("]\n");
+
+  
 
   // the duration is in seconds. the timer task needs microseconds.
   uint64_t timeout =    duration * 1000 * 1000; //   ((uint64_t)duration)*1000*1000); // seconds * 1000 = ms * 1000 = us
@@ -191,6 +202,16 @@ int relay_parallel_timed_toggle_task(uint32_t duration, uint8_t *pins, int len) 
     }    
   }
 
+
+  printf("ptask - active pins: [");
+  for(int i=0;i<active_pincount;i++) {
+    if(i == active_pincount -1) {
+      printf("%d",active_pins[i]);
+    } else {
+      printf("%d ",active_pins[i]);
+    }
+  }
+  printf("]\n");
   
   
   // callback will end the process when timer expires  
