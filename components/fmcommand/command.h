@@ -26,6 +26,7 @@
 #define TIMEREQ_STR             "TIMEREQ"
 #define TIMESET_STR             "TIMESET"
 #define TIMEZONESET_STR         "TIMEZONESET"
+#define LOG_STR                 "LOG"
 
 
 

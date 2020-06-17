@@ -2,6 +2,10 @@
 
 #include <kv.h>
 #include <relay.h>
+//#include <frame.h>
+//#include <framecon.h>
+//#include <log.h>
+
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -17,6 +21,13 @@
 
 cmd_p root_command;
 cmd_p last_command;
+
+static uint32_t get_timestamp(void) {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  
+  return (uint32_t)tv.tv_sec;
+}
 
 
 // ----------------------- START CONSOLE COMMANDS -------------------------
@@ -101,7 +112,6 @@ static void cmd_id(char *argv[], int argc) {
   }
 }
 
-
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
@@ -110,82 +120,30 @@ static void cmd_mem(char *argv[], int argc) {
   printf("mem free %d\n", fmem);    
 }
 
-
-
-
-/*
-time_t now;
-char strftime_buf[64];
-struct tm timeinfo;
-
-time(&now);
-// Set timezone to China Standard Time
-setenv("TZ", "CST-8", 1);
-tzset();
-
-// Set timezone to South African Standard Time +2
-setenv("TZ","SAST",2); 
-
-localtime_r(&now, &timeinfo);
-strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
-ESP_LOGI(TAG, "The current date/time in Shanghai is: %s", strftime_buf);
-*/
-
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
 static void cmd_time(char *argv[], int argc) {
 
   if (argc == 1) {
-    time_t now;
+    struct timeval now;
+    gettimeofday(&now,0x0);
+    time_t seconds = now.tv_sec;
+    
+    struct tm *local = localtime(&seconds);
+
+   
     char buffer[64];
     struct tm timeinfo;
 
-    setenv("TZ","SAST",2);
-    tzset();
-
-    localtime_r(&now, &timeinfo);
+    localtime_r(&seconds, &timeinfo);
     strftime(buffer, sizeof(buffer),"%c",&timeinfo);
 
     printf("%s\n", buffer);
-    
-
-
-
-
-
-    /*
-  
-    // Get Time
-    struct timeval tv;
-    struct tm timeinfo;
-    time_t t;
-    struct tm *ts;
-    char buffer[80];
- 
-    gettimeofday(&tv, NULL);
-    t = tv.tv_sec;
-
-
-    setenv("TZ","SAST",2);
-    tzset();
-    
-    ts = localtime_r(&t, &timeinfo);
-
-    strftime(buffer, sizeof(buffer),"%c",&timeinfo);
-
-
-    // "%Y-%m-%dT%H:%M:%S"
-    // "%a %Y-%m-%d %H:%M:%S %Z"  
-    //strftime(buffer, sizeof(buffer),"%Y-%m-%dT%H:%M:%S" , ts);
-    printf("%s\n", buffer);
-
-    */
-
+   
     
   } else if(argc == 2) {
     // Set Time 
-
      struct tm result;
      time_t time;
      struct timeval val;
@@ -214,9 +172,6 @@ static void cmd_time(char *argv[], int argc) {
     console_log_error("Usage: time <RFC3339 time>.");
   }
 }
-
-
-
 
 /* ------------------------------------------------------------------------
  * 
@@ -329,9 +284,7 @@ static void cmd_gateway(char *argv[], int argc) {
  * --------------------------------------------------------------------- */
 static void cmd_relay(char *argv[], int argc) {
   esp_err_t err;
-  uint8_t relays[RELAY_MAXLEN];
-  
-  
+  uint8_t relays[RELAY_MAXLEN];  
   if(argc >= 2) {
     if(strcmp(argv[1], "pins") == 0) {
       if(argc == 2) {
@@ -358,18 +311,67 @@ static void cmd_relay(char *argv[], int argc) {
            printf("error %d %s\n", err, esp_err_to_name(err));
         } else {
           printf("relay pins *set*\n");
-        }
-        
+        }        
       }
     } else if (strcmp(argv[1], "on") == 0) {
-      printf("relay on <value> not implemented\n");
+      if(argc == 3) {
+        uint8_t pin = atoi(argv[2]);
+        relay_on(pin);
+        printf("relay %d has been turned on.\n", pin);
+      } else {
+        printf("relay on <pin number>\n");
+      }
     } else if (strcmp(argv[1], "off") == 0) {
-      printf("relay off <value> not implemented\n");
+      if(argc == 3) {
+        uint8_t pin = atoi(argv[2]);
+        relay_off(pin);
+        printf("relay %d has been turned off.\n", pin);
+      } else {
+        printf("relay off <pin number>\n");
+      }
+    } else if (strcmp(argv[1],"state") == 0) {
+      // get the relay state
+      if(argc == 3) {
+        uint8_t pin = atoi(argv[2]);
+        uint8_t state = relay_current_state(pin);      
+        if(state == 0) {
+          printf("relay %d is off.\n", pin);
+        } else if (state == 1) {
+          printf("relay %d is on.\n", pin);
+        } else {
+          printf("Error: relay %d state is unknown.\n", pin);
+        }
+      } else {
+        printf("relay state <pin number>\n");
+      }
+
+
+      // int relay_parallel_timed_toggle_task(uint32_t duration, uint8_t *pins, int len);
+    } else if (strcmp(argv[1],"ptask") == 0) {
+      // a parallel process task:   relay ptask duration-seconds pin pin ... pin
+      if(argc < 4) {
+        printf("relay ptask <duration-seconds> <pin> ... <pin>\n");
+      } else {
+        
+        uint32_t duration = atoi(argv[2]); // get duration 
+        size_t len = argc - 3;             // figure out pin count 
+        for(int i=0;i<len;i++) {           // get pins 
+          relays[i] = argv[i+3];
+        }
+
+        // fire the task
+        relay_parallel_timed_toggle_task(duration, relays, len);
+        
+      }
+    
+    } else if (strcmp(argv[1],"stask") == 0) {
+      // a serial process task  
+      
     } else {
-      printf("relay [pins|on|off] <value(s)>.\n");  
+      printf("relay [pins|on|off|state|ptask|stask] <value(s)>.\n");  
     }
   } else {
-    printf("relay [pins|on|off] <value(s)>.\n");  
+    printf("relay [pins|on|off|state|ptask|stask] <value(s)>.\n");  
   }
 }
 

@@ -37,6 +37,8 @@ const char *command_to_string(uint8_t cmd) {
     return TIMESET_STR;
   case TIMEZONESET:
     return TIMEZONESET_STR;
+  case LOG:
+    return LOG_STR;
   default:
     return UNKNOWN_STR;
   }
@@ -70,50 +72,65 @@ frame_t *cmd_time_request() {
   return frame;
 }
 
-/*
-time_t now;
-char strftime_buf[64];
-struct tm timeinfo;
-
-time(&now);
-// Set timezone to China Standard Time
-setenv("TZ", "CST-8", 1);
-tzset();
-
-// Set timezone to South African Standard Time +2
-setenv("TZ","SAST",2); 
-
-localtime_r(&now, &timeinfo);
-strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
-ESP_LOGI(TAG, "The current date/time in Shanghai is: %s", strftime_buf);
-*/
-
-
-
 /* ------------------------------------------------------------------------
  * Extract a uint32_t from the payload of a frame with the command TIMESET.
- * Cast to signed and set the system time. Return 1 on success else 0 
+ * Cast to signed and set the system time. Extract a string from the payload
+ * use this to set the timezone. 
+ * Return 1 on success else 0 
  * --------------------------------------------------------------------- */
 int cmd_time_set(frame_t *frame) {
   struct timeval t;
   uint32_t time;
+  char tz[16];
 
+  
   frame_args_begin(frame);
+
+  // Extract the unix timestamp 
   if(!frame_args_get_uint32(frame, &time)) {
-    console_log_error("Command TIMESET does not have a 4 byte payload.");
+    console_log_error("Command TIMESET does not have a 4 byte unix timestamp.");
     frame_args_end(frame);
     return 0;
   }
+
+  // Extract the timezone string length 
+  size_t slen;
+  if(!frame_args_get_string_len(frame, &slen)) {
+    console_log_error("Command TIMESET does not have a string timezone.");
+    frame_args_end(frame);
+    return 0;
+  }
+
+  // Extract the timezone  
+  if(slen < 16) {
+    if(!frame_args_get_string(frame, tz, slen)) {
+      console_log_error("Command TIMSET failed to get timezone from args.");
+      frame_args_end(frame);
+      return 0;
+    }                                                 
+  } else {
+    console_log_error("Command TIMESET buffer too small to get timezone.");
+    frame_args_end(frame);
+    return 0;
+  }
+
+  // end the frame args
   frame_args_end(frame);
 
-  
+  // set the time 
   t.tv_sec = (int32_t)time;
   t.tv_usec = 0;
-  
   if(settimeofday(&t,NULL) != 0) {
     console_log_error("Command TIMESET could not settimeofday");
     return 0;
   };
+
+  // set the timezone 
+  setenv("TZ", tz, 1);
+  tzset();
+
+
+  // complete
   return 1; 
 }
 
