@@ -25,8 +25,8 @@
 static char wifi_ssid[32];
 static char wifi_password[64];
 
-static int retry_count;
-static int retry_delay;
+static int retry_count = 0;
+static int retry_delay = 1000;
 
 static EventGroupHandle_t wifi_event_group;
 
@@ -43,28 +43,28 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
     switch (event_id) {
     case SYSTEM_EVENT_STA_START:
       xEventGroupSetBits(wifi_event_group, WIFI_INITIALIZED);
-      console_log_info("Wifi connecting. event = STA_START");      
+      //console_log_info("Wifi connecting. event = STA_START");      
  	    esp_wifi_connect();
       break;
     case SYSTEM_EVENT_STA_STOP:
       xEventGroupClearBits(wifi_event_group, WIFI_INITIALIZED);
  	    ESP_ERROR_CHECK( esp_wifi_deinit());
-      console_log_info("Wifi disconnecting. event = STA_STOP");
+      //console_log_info("Wifi disconnecting. event = STA_STOP");
       break;
     case SYSTEM_EVENT_STA_CONNECTED:
       xEventGroupSetBits(wifi_event_group,WIFI_CONNECTED);
-      console_log_info("Wifi connected. event = STA_CONNECTED");
+      //console_log_info("Wifi connected. event = STA_CONNECTED");
       retry_count = 0;
       retry_delay = 1000; // retry in 1 second
  	    break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
       xEventGroupClearBits(wifi_event_group, WIFI_CONNECTED);
       xEventGroupClearBits(wifi_event_group,  WIFI_GOT_IP);
-      console_log_info("Wifi disconnected. event = STA_DISCONNECTE");
+      // console_log_info("Wifi disconnected. event = STA_DISCONNECTED");
 
       retry_count++;
       int seconds = retry_delay / 1000;
-      console_log_info("Wifi reconnect attempt in %d seconds.", seconds);
+      //console_log_info("Wifi reconnect attempt in %d seconds.", seconds);
       vTaskDelay(retry_delay / portTICK_PERIOD_MS);
       retry_delay = retry_delay * 2;
       if (retry_delay > 16000) {
@@ -85,9 +85,9 @@ static void ip_event_handler(void* arg, esp_event_base_t event_base, int32_t eve
     switch (event_id) {
     case IP_EVENT_STA_GOT_IP:
       xEventGroupSetBits(wifi_event_group,  WIFI_GOT_IP);
-      tcpip_adapter_ip_info_t ip_info;
-	    ESP_ERROR_CHECK(tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &ip_info));
-      console_log_info("Wifi IP address assigned. IP = %s", ip4addr_ntoa(&ip_info.ip));
+      //tcpip_adapter_ip_info_t ip_info;
+	    //ESP_ERROR_CHECK(tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &ip_info));
+      //console_log_info("Wifi IP address assigned. IP = %s", ip4addr_ntoa(&ip_info.ip));
 
       // let frame connection client know interface has changed
       framecon_wifi_interface_state_change(1);
@@ -96,7 +96,7 @@ static void ip_event_handler(void* arg, esp_event_base_t event_base, int32_t eve
       break;
     case IP_EVENT_STA_LOST_IP:
       xEventGroupClearBits(wifi_event_group,  WIFI_GOT_IP);
-      console_log_info("Wifi IP address lost");
+      //console_log_info("Wifi IP address lost");
 
       // let frame connection client know interface has changed
       framecon_wifi_interface_state_change(0);

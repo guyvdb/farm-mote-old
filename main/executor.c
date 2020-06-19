@@ -35,7 +35,7 @@ static QueueHandle_t txqueue;
 
 
 /* ------------------------------------------------------------------------
- * 
+ *
  * --------------------------------------------------------------------- */
 static uint32_t generate_mote_id(void) {
   esp_err_t err;
@@ -57,7 +57,7 @@ static uint32_t generate_mote_id(void) {
 }
 
 /* ------------------------------------------------------------------------
- * 
+ *
  * --------------------------------------------------------------------- */
 static uint32_t get_mote_id(void) {
   esp_err_t err;
@@ -77,7 +77,7 @@ static uint32_t get_mote_id(void) {
 
 
 /* ------------------------------------------------------------------------
- * 
+ *
  * --------------------------------------------------------------------- */
 void initialize_executor() {
   running = 1;
@@ -86,17 +86,7 @@ void initialize_executor() {
 
 
 /* ------------------------------------------------------------------------
- * 
- * --------------------------------------------------------------------- */
-/*static uint32_t get_unix_time() {
-   struct timeval tv;
-   gettimeofday(&tv, NULL);
-   return tv.tv_sec;
-   }*/
-
-
-/* ------------------------------------------------------------------------
- * 
+ *
  * --------------------------------------------------------------------- */
 static int set_gateway_info() {
   esp_err_t err;
@@ -130,21 +120,21 @@ static int set_gateway_info() {
 }
 
 /* ------------------------------------------------------------------------
- * 
+ *
  * --------------------------------------------------------------------- */
 void finalize_executor(void) {
 
 }
 
 /* ------------------------------------------------------------------------
- * 
+ *
  * --------------------------------------------------------------------- */
 void transmit(frame_t* frame) {
   xQueueSend(txqueue, &frame, 10);
 }
 
 /* ------------------------------------------------------------------------
- * The exector main task 
+ * The exector main task
  * --------------------------------------------------------------------- */
 void executor_task( void *pvParameters ) {
   frame_t *rxframe = 0x0;
@@ -152,14 +142,13 @@ void executor_task( void *pvParameters ) {
   frame_t *frame = 0x0;
   int timereqflag = 0;
   //uint32_t id = 5000;
- 
 
-  // Create the transmission queue -- max 10 frames 
+
+  // Create the transmission queue -- max 10 frames
   txqueue =xQueueCreate(10, sizeof(frame_t*));
 
-    
   // Wait to get an IP
-  //  const TickType_t xTicksToWait = 10000 / portTICK_PERIOD_MS; 
+  //  const TickType_t xTicksToWait = 10000 / portTICK_PERIOD_MS;
   //xEventGroupWaitBits(app_event_group,WIFI_GOT_IP,0,0,xTicksToWait);
   wifi_wait_for_interface();
 
@@ -175,14 +164,14 @@ void executor_task( void *pvParameters ) {
 
 
 
-  // Generate an ident and time request 
+  // Generate an ident and time request
   frame = cmd_ident(moteid);
   transmit(frame);
 
   frame = cmd_time_request();
   transmit(frame);
-  
-  
+
+
   // start main loop
   while (running) {
 
@@ -190,7 +179,7 @@ void executor_task( void *pvParameters ) {
       // read a frame
       rxframe = framecon_read();
       if (rxframe != 0x0) {
-        // debug some output 
+        // debug some output
         char *msg = frame_to_string(rxframe);
         const char *cmd = command_to_string(rxframe->cmd);
         printf("RX %s %s\n",cmd, msg);
@@ -202,47 +191,45 @@ void executor_task( void *pvParameters ) {
           if(cmd_time_set(rxframe)) {
             // success
             timereqflag = 1;
-          }            
+          }
+          break;
+        case ACK:
+          // remove the frame from the resend list.. it is complete
           break;
         default:
           printf("CMD %d UNKNOWN\n",rxframe->cmd);
           break;
         }
-        // free the frame 
-        frame_free(rxframe);             
+        // free the frame
+        frame_free(rxframe);
       }
 
-      // write a frame 
-      if( xQueueReceive(txqueue, &txframe, 100)) {        
-        if(txframe != 0x0) {         
+      // write a frame
+      if( xQueueReceive(txqueue, &txframe, 100)) {
+        if(txframe != 0x0) {
           framecon_write(txframe);
           char *msg = frame_to_string(txframe);
           const char *cmd = command_to_string(txframe->cmd);
           printf("TX %s %s\n",cmd, msg);
-          free(msg);          
+          free(msg);
           frame_free(txframe);
         }
-      }        
+      }
     } else {
-      // try connect again      
-      if(framecon_reconnect()) {        
+      // try connect again
+      if(framecon_reconnect()) {
         frame = cmd_ident(moteid);
         transmit(frame);
-       
-        
-        if(!timereqflag) {          
+        if(!timereqflag) {
           frame = cmd_time_request();
-          transmit(frame);          
+          transmit(frame);
         }
-        
       }
 
-      
     }
 
     vTaskDelay(TIMEOUTDURATION / portTICK_PERIOD_MS);
   }
-  
   vTaskDelete(NULL);
 
 }
