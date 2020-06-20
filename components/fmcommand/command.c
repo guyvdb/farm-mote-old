@@ -6,6 +6,9 @@
 #include <esp_err.h>
 
 
+// These functions are extern to fmrelay
+extern void relay_on(uint8_t pin);
+extern void relay_off(uint8_t pin);
 
 
 /* ------------------------------------------------------------------------
@@ -39,6 +42,8 @@ const char *command_to_string(uint8_t cmd) {
     return TIMEZONESET_STR;
   case LOG:
     return LOG_STR;
+  case RELAYSET:
+    return RELAYSET_STR;
   default:
     return UNKNOWN_STR;
   }
@@ -144,3 +149,34 @@ int cmd_time_zone_set(frame_t *frame) {
 }
 
 
+/* ------------------------------------------------------------------------
+ * 
+ * --------------------------------------------------------------------- */
+int cmd_relay_set(frame_t *frame){
+  uint8_t pin;
+  uint8_t value;
+
+  frame_args_begin(frame);
+
+  if(!frame_args_get_uint8(frame, &pin)) {
+    console_log_error("Command RELAYSET does not have a 1 byte pin.");
+    frame_args_end(frame);
+    return 0;
+  }
+
+  if(!frame_args_get_uint8(frame, &value)) {
+    console_log_error("Command RELAYSET does not have a 1 byte value.");
+    frame_args_end(frame);
+    return 0;
+  }
+
+  frame_args_end(frame);
+
+  if (value == 1){
+    relay_on(pin);
+  } else {
+    relay_off(pin);
+  }
+
+  return 1;
+}

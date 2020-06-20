@@ -1,10 +1,14 @@
 #include "executor.h"
 #include "command.h"
+#include "wifi.h"
 
 #include <frame.h>
 #include <framebuf.h>
 #include <framecon.h>
 #include <framelst.h>
+#include <kv.h>
+#include <console.h>
+#include <command.h>
 
 #include <string.h>
 
@@ -13,25 +17,14 @@
 #include <freertos/event_groups.h>
 #include <freertos/queue.h>
 
-
 #include <esp_log.h>
 #include <esp_err.h>
-
-
-
-#include <kv.h>
-#include <console.h>
-#include <command.h>
-#include "wifi.h"
-
 
 #define RX_BUF_SIZE 256
 #define TIMEOUTDURATION 1000 // milliseconds
 
 static int running = 0;
 static QueueHandle_t txqueue;
-
-
 
 
 /* ------------------------------------------------------------------------
@@ -81,7 +74,7 @@ static uint32_t get_mote_id(void) {
  * --------------------------------------------------------------------- */
 void initialize_executor() {
   running = 1;
-  xTaskCreate(executor_task, "executor_task", 4096, NULL, 5, NULL);
+  xTaskCreate(executor_task, "executor_task", 2048 * 2, NULL, 5, NULL);
 }
 
 
@@ -130,6 +123,9 @@ void finalize_executor(void) {
  *
  * --------------------------------------------------------------------- */
 void transmit(frame_t* frame) {
+
+  // if we do not have a network connection we should save the frame to file
+  // otherwise we should queue it for transmission
   xQueueSend(txqueue, &frame, 10);
 }
 
@@ -140,16 +136,12 @@ void executor_task( void *pvParameters ) {
   frame_t *rxframe = 0x0;
   frame_t *txframe = 0x0;
   frame_t *frame = 0x0;
-  int timereqflag = 0;
-  //uint32_t id = 5000;
-
+  
 
   // Create the transmission queue -- max 10 frames
   txqueue =xQueueCreate(10, sizeof(frame_t*));
 
   // Wait to get an IP
-  //  const TickType_t xTicksToWait = 10000 / portTICK_PERIOD_MS;
-  //xEventGroupWaitBits(app_event_group,WIFI_GOT_IP,0,0,xTicksToWait);
   wifi_wait_for_interface();
 
   // After the wifi is up get the mote id. If it does not exist
@@ -162,15 +154,12 @@ void executor_task( void *pvParameters ) {
   // setup the gateway info
   set_gateway_info();
 
-
-
   // Generate an ident and time request
   frame = cmd_ident(moteid);
   transmit(frame);
 
   frame = cmd_time_request();
   transmit(frame);
-
 
   // start main loop
   while (running) {
@@ -188,13 +177,13 @@ void executor_task( void *pvParameters ) {
         // process the frame
         switch(rxframe->cmd) {
         case TIMESET:
-          if(cmd_time_set(rxframe)) {
-            // success
-            timereqflag = 1;
-          }
+          cmd_time_set(rxframe);
           break;
         case ACK:
           // remove the frame from the resend list.. it is complete
+          break;
+        case RELAYSET:
+          cmd_relay_set(rxframe);
           break;
         default:
           printf("CMD %d UNKNOWN\n",rxframe->cmd);
@@ -220,10 +209,10 @@ void executor_task( void *pvParameters ) {
       if(framecon_reconnect()) {
         frame = cmd_ident(moteid);
         transmit(frame);
-        if(!timereqflag) {
+        /*  if(!timereqflag) {
           frame = cmd_time_request();
           transmit(frame);
-        }
+          }*/
       }
 
     }

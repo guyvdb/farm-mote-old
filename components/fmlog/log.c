@@ -70,9 +70,22 @@ frame_t *log_create_relay_state_change(uint8_t relay, uint8_t newstate, int32_t 
   return frame;
 }
 
+frame_t *log_create_sensor_reading(uint8_t pin, uint8_t sensortype, int32_t time, uint8_t paylen) {
+  // the len needs to be pin + type + time + extra paylen -- the logtype is added by create_log
+  uint8_t len = 6 + paylen;
+  frame_t *frame = log_create(LOGTYPE_SENSOR, len);
+  frame_args_put_uint8(frame, sensortype);
+  frame_args_put_uint8(frame, pin);
+  frame_args_put_uint32(frame,(uint32_t)time);
+  return frame; // do not end args... the caller will append paylen length of args
+  
+}
+
+
 /* ------------------------------------------------------------------------
  * 
  * --------------------------------------------------------------------- */
+/* 
 frame_t *log_create_relay_timed_toggle_complete(uint8_t relay, int32_t start_time, int32_t end_time) {
   frame_t *frame = log_create(LOGTYPE_RELAY_TIMED_TOGGLE_COMPLETE, 9);
   frame_args_put_uint8(frame, relay);
@@ -81,3 +94,4 @@ frame_t *log_create_relay_timed_toggle_complete(uint8_t relay, int32_t start_tim
   frame_args_end(frame);  
   return frame;
 }
+*/

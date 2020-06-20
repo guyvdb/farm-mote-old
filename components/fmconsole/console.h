@@ -45,7 +45,7 @@ typedef cmd_t* cmd_p;
 
 
 
-cmd_p add_console_cmd(char *name, cmdfunc *func);
-cmd_p find_console_cmd(char *name);
+cmd_p add_console_cmd(const char *name, cmdfunc *func);
+cmd_p find_console_cmd(const char *name);
 
 

@@ -10,7 +10,10 @@
 #define LOGTYPE_REBOOT                            1
 #define LOGTYPE_TIMESET                           2
 #define LOGTYPE_RELAY_STATE_CHANGE                3
-#define LOGTYPE_RELAY_TIMED_TOGGLE_COMPLETE       4
+#define LOGTYPE_SENSOR                            4
+
+
+//#define LOGTYPE_RELAY_TIMED_TOGGLE_COMPLETE       4
 
 
 
@@ -23,4 +26,8 @@ frame_t *log_create_powerup(void);
 frame_t *log_create_reboot(void);
 frame_t *log_create_timeset(int32_t time);
 frame_t *log_create_relay_state_change(uint8_t relay, uint8_t newstate, int32_t time);
-frame_t *log_create_relay_timed_toggle_complete(uint8_t relay, int32_t start_time, int32_t end_time); 
+frame_t *log_create_sensor_reading(uint8_t pin, uint8_t sensortype, int32_t time, uint8_t paylen);
+
+
+
+//frame_t *log_create_relay_timed_toggle_complete(uint8_t relay, int32_t start_time, int32_t end_time);

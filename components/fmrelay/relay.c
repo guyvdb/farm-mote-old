@@ -21,8 +21,8 @@ static int pin_ptr = 0;
 static uint32_t process_duration;
 static int process_running = 0;
 
-static int32_t task_start_time = 0;
-static int32_t pin_start_time = 0;
+//static int32_t task_start_time = 0;
+//static int32_t pin_start_time = 0;
 
 static esp_timer_handle_t timer;
 
@@ -45,7 +45,7 @@ static void parallel_timed_task_callback(void* arg) {
   // log all pin changes + task complete 
   for(int i=0; i< active_pincount;i++) {
     transmit(log_create_relay_state_change(active_pins[i], 0, task_end_time));   
-    transmit(log_create_relay_timed_toggle_complete(active_pins[i], task_start_time,task_end_time));
+    //  transmit(log_create_relay_timed_toggle_complete(active_pins[i], task_start_time,task_end_time));
   }
 
   // delete the timer
@@ -171,7 +171,7 @@ int relay_parallel_timed_toggle_task(uint32_t duration, uint8_t *pins, int len) 
   process_running = 1;
   
   // set the process start time
-  task_start_time = get_unix_timestamp();
+  uint32_t task_start_time = get_unix_timestamp();
 
   // Setup timer params 
   const esp_timer_create_args_t timer_args = {.callback = &parallel_timed_task_callback,.name = "parallel_timer"};

@@ -2,9 +2,6 @@
 
 #include <kv.h>
 #include <relay.h>
-//#include <frame.h>
-//#include <framecon.h>
-//#include <log.h>
 
 
 #include <freertos/FreeRTOS.h>
@@ -97,7 +94,7 @@ static void cmd_id(char *argv[], int argc) {
       printf("id %d\n", id);
     } else {
       printf("error %d  %s\n", err, esp_err_to_name(err));
-    } 
+    }
   } else if (argc == 2) {
     id = (uint32_t)atoi(argv[1]);
     err = set_id(id);
@@ -105,15 +102,14 @@ static void cmd_id(char *argv[], int argc) {
       printf("id *set*\n");
     } else {
       printf("error %d  %s\n", err, esp_err_to_name(err));
-    }        
-      
+    }
   } else {
     console_log_error("Usage: id <id>.");
   }
 }
 
 /* ------------------------------------------------------------------------
- * 
+ *
  * --------------------------------------------------------------------- */
 static void cmd_mem(char *argv[], int argc) {
   uint32_t fmem = esp_get_free_heap_size();
@@ -424,9 +420,8 @@ void initialize_console_commands(void) {
   add_console_cmd("relay", cmd_relay);
 }
 
-
 /* ------------------------------------------------------------------------
- * 
+ *
  * --------------------------------------------------------------------- */
 void finalize_console_commands(void) {
   // delete all the commands
@@ -452,9 +447,9 @@ void finalize_console_commands(void) {
 }
 
 /* ------------------------------------------------------------------------
- * 
+ *
  * --------------------------------------------------------------------- */
-cmd_p add_console_cmd(char *name, cmdfunc *func) {
+cmd_p add_console_cmd(const char *name, cmdfunc *func) {
   // set up the new command
   cmd_p cmd = (cmd_p)malloc(sizeof(cmd_t));
   cmd->next = 0x0;
@@ -475,7 +470,7 @@ cmd_p add_console_cmd(char *name, cmdfunc *func) {
 /* ------------------------------------------------------------------------
  *
  * --------------------------------------------------------------------- */
-cmd_p find_console_cmd(char *name) {
+cmd_p find_console_cmd(const char *name) {
   cmd_p ptr = root_command;
 
   while(1) {
@@ -490,10 +485,3 @@ cmd_p find_console_cmd(char *name) {
     }
   }
 }
-
-/* ------------------------------------------------------------------------
- *
- * --------------------------------------------------------------------- */
-//printfunc find_cmd_print_func(cmd_interface interface) {
-//  return printf;
-//}

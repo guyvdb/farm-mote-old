@@ -15,6 +15,7 @@
 #define TIMESET      7
 #define TIMEZONESET  8
 #define LOG          9
+#define RELAYSET     10
 
 /* RESERVED          27*/
 
@@ -27,7 +28,7 @@
 #define TIMESET_STR             "TIMESET"
 #define TIMEZONESET_STR         "TIMEZONESET"
 #define LOG_STR                 "LOG"
-
+#define RELAYSET_STR            "RELAYSET"
 
 
 const char *command_to_string(uint8_t cmd);
@@ -36,6 +37,7 @@ frame_t *cmd_ident(uint32_t id);
 frame_t *cmd_time_request();
 int cmd_time_set(frame_t *frame);
 int cmd_time_zone_set(frame_t *frame);
+int cmd_relay_set(frame_t *frame);
 
 
 
